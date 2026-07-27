@@ -22,6 +22,7 @@ public class CacheCachePlugin extends JavaPlugin {
         this.disguiseManager = new DisguiseManager(this);
         this.mapManager = new MapManager(this);
         this.gameManager = new GameManager(this);
+        this.disguiseManager.start();
 
         CCCommand ccCommand = new CCCommand(this);
         getCommand("cc").setExecutor(ccCommand);
@@ -41,6 +42,7 @@ public class CacheCachePlugin extends JavaPlugin {
                 session.stopTicking();
             }
         }
+        if (disguiseManager != null) disguiseManager.stop();
         getLogger().info("CacheCache désactivé.");
     }
 

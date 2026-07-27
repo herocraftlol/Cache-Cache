@@ -2,15 +2,26 @@
 
 Plugin de mini-jeu "Cache-Cache" (type Prop Hunt) pour serveur Paper 1.21.
 
-## ⚠️ Dépendance requise : LibsDisguises
+## ✅ Aucune dépendance externe
 
-Paper (API vanilla) ne permet pas nativement de faire apparaître un joueur comme un mob
-pour les autres clients. Ce plugin utilise donc **LibsDisguises** (soft-dépendance) pour
-déguiser les joueurs cachés en mobs. Sans LibsDisguises installé sur le serveur, le jeu
-reste jouable mais les joueurs resteront visuellement des joueurs (le plugin log un
-avertissement au démarrage dans ce cas).
+Ce plugin ne dépend plus de LibsDisguises (ni d'aucun autre plugin). Le camouflage des
+joueurs en mobs est désormais 100% natif, avec uniquement l'API Paper :
 
-Téléchargement : https://www.spigotmc.org/resources/libsdisguises.81/
+- Le vrai joueur est rendu invisible pour tout le monde (`Player#hidePlayer`).
+- Un vrai mob "fantôme" (sans IA, increvable, sans collision, sans gravité) apparaît à sa
+  place et est téléporté sur sa position à chaque tick.
+- Tout le monde (Seeker compris) ne voit et ne peut cliquer que sur ce mob fantôme — le
+  vrai joueur n'existe tout simplement plus sur le client des autres, donc personne ne
+  peut accidentellement viser "la vraie personne" au lieu du mob.
+- Frapper le mob fantôme d'un joueur cache déclenche une vraie élimination ; frapper un
+  simple mob de décor le tue juste instantanément (et consomme un coup du Seeker dans les
+  deux cas).
+
+Limite assumée avec cette approche : comme un joueur normal (pas caché) ne peut pas voir
+"à travers" `hidePlayer`, les joueurs cachés se voient forcément comme des mobs entre eux
+aussi (pas seulement pour le Seeker) — l'ancienne idée de "les cachés se reconnaissent
+entre eux" n'est donc plus possible sans un système par paquets (type ProtocolLib), ce qui
+irait à l'encontre de la demande de ne plus dépendre d'aucun plugin externe.
 
 ## Compilation
 
@@ -31,9 +42,8 @@ Le jar final sera dans `target/CacheCache.jar`.
 ## Installation
 
 1. Compiler le plugin (ou récupérer le jar).
-2. Installer LibsDisguises sur le serveur.
-3. Placer `CacheCache.jar` dans le dossier `plugins/`.
-4. Redémarrer le serveur.
+2. Placer `CacheCache.jar` dans le dossier `plugins/`.
+3. Redémarrer le serveur.
 
 ## Utilisation rapide
 
@@ -112,14 +122,12 @@ reste modifiable normalement par tout le monde.
   Seeker inclus — est désormais strictement bloqué dans la zone de l'arène : s'il atteint
   le bord, il est renvoyé au centre de l'arène (avec un message, limité à une fois toutes
   les 3s pour ne pas spammer).
-- **Correctif "je bouge tout seul" (renforcé)** : en plus de `setModifyBoundingBox(false)`
-  et `setVelocitySent(false)`, le plugin réaffirme maintenant `setCollidable(false)` sur
-  chaque joueur caché toutes les secondes pendant la partie. Certains plugins de
-  déguisement resynchronisent périodiquement les métadonnées d'entité (dont l'état de
-  collision) pour coller au mob imité, ce qui pouvait annuler notre réglage initial et
-  provoquer ce mouvement parasite. Si le souci persiste après cette mise à jour, dis-moi
-  avec quel(s) type(s) de mob précis ça arrive : ça m'aiderait à cibler si c'est un type de
-  déguisement particulier qui pose problème côté LibsDisguises.
+- **Correctif "je bouge tout seul"** : ce souci venait des ajustements de hitbox/vélocité
+  faits par LibsDisguises pour imiter le mob. Depuis le passage au système natif (mob
+  fantôme + joueur invisible), ce risque disparaît complètement : le vrai joueur garde sa
+  hitbox de joueur normale et se déplace normalement ; seul le mob fantôme, qu'on
+  téléporte sur sa position à chaque tick, est visible des autres. Le `setCollidable(false)`
+  périodique reste en place par sécurité, pour éviter toute poussée par un mob de décor.
 - **Le Seeker one-shot aussi les mobs** : dès qu'il frappe n'importe quel mob (un décor de
   camouflage ou un mob naturel de la map), celui-ci meurt instantanément — exactement
   comme s'il touchait un joueur cousin caché, puisqu'il ne peut pas savoir lequel est réel.
@@ -135,11 +143,13 @@ ou une simplification que je documente ici :
 
 - **Distinction visuelle "cachés entre eux" vs Seeker** : le cahier des charges demande
   que les joueurs cachés se reconnaissent entre eux mais que le Seeker les confonde avec
-  les vrais mobs. Une distinction *par joueur* (le même mob visible différemment selon qui
-  regarde) nécessite un système par paquets (type ProtocolLib) que je n'ai pas ajouté pour
-  garder le plugin autonome. Actuellement, tout le monde (y compris le Seeker) voit le
-  même déguisement LibsDisguises. À voir si tu veux que j'ajoute ProtocolLib pour ce point
-  précis.
+  les vrais mobs. Le système natif (sans dépendance) cache le vrai joueur pour TOUT LE
+  MONDE, pas seulement pour le Seeker — une distinction *par viewer* (le même joueur visible
+  différemment selon qui regarde) nécessiterait un système par paquets (type ProtocolLib),
+  ce qui irait à l'encontre de la demande de ne plus dépendre d'aucun plugin externe. Donc
+  actuellement, tout le monde (cachés entre eux inclus) voit uniquement le mob fantôme.
+  Dis-moi si tu préfères qu'on réintroduise une dépendance (ProtocolLib) pour ce point
+  précis, sinon ça reste ainsi.
 - **Killmax** : interprété comme un nombre de coups "one-shot" disponibles pour le(s)
   Seeker(s). Une fois ce quota atteint, le Seeker ne peut plus achever personne (son épée
   ne fait plus rien) — la partie continue jusqu'à la fin du temps.

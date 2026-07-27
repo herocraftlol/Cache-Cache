@@ -17,6 +17,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -126,8 +127,19 @@ public class PlayerListener implements Listener {
         }
 
         session.registerSeekerKill(attacker.getUniqueId());
-        mob.setHealth(0);
-        mob.getWorld().playSound(mob.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
+
+        UUID hiddenId = plugin.getDisguiseManager().getPlayerBehindShadow(mob.getUniqueId());
+        if (hiddenId != null) {
+            // Ce mob est en fait le "fantôme" d'un joueur caché : c'est une vraie élimination.
+            Player victim = Bukkit.getPlayer(hiddenId);
+            if (victim != null && session.isAliveHidden(hiddenId)) {
+                plugin.getServer().getScheduler().runTask(plugin, () -> session.onHiddenEliminated(victim));
+            }
+        } else {
+            // Simple mob de décor : le Seeker le tue instantanément, sans élimination de joueur.
+            mob.setHealth(0);
+            mob.getWorld().playSound(mob.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
+        }
     }
 
     @EventHandler
@@ -311,6 +323,11 @@ public class PlayerListener implements Listener {
             }
 
         }
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        plugin.getDisguiseManager().applyHiddenStateFor(e.getPlayer());
     }
 
     // -------------------------------------------------------------- QUIT

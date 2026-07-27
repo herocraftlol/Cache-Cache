@@ -334,6 +334,7 @@ public class GameSession {
                     living.setCollidable(false); // évite de pousser les joueurs
                     living.setRemoveWhenFarAway(false);
                     living.setPersistent(true);
+                    living.setInvulnerable(true); // ne meurt jamais tout seul (chute, feu, noyade...)
                 }
                 decoyMobs.add(entity.getUniqueId());
             } catch (IllegalArgumentException ignored) {
