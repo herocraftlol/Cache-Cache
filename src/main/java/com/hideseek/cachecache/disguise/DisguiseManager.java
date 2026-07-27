@@ -1,8 +1,9 @@
 package com.hideseek.cachecache.disguise;
 
-import com.github.libraryaddict.disguise.DisguiseAPI;
-import com.github.libraryaddict.disguise.disguisetypes.Disguise;
-import com.github.libraryaddict.disguise.disguisetypes.DisguiseType;
+import me.libraryaddict.disguise.DisguiseAPI;
+import me.libraryaddict.disguise.disguisetypes.Disguise;
+import me.libraryaddict.disguise.disguisetypes.DisguiseType;
+import me.libraryaddict.disguise.disguisetypes.MobDisguise;
 import com.hideseek.cachecache.CacheCachePlugin;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -32,7 +33,7 @@ public class DisguiseManager {
         if (!available) return;
         try {
             DisguiseType dtype = DisguiseType.valueOf(type.name());
-            Disguise disguise = new Disguise(dtype);
+            MobDisguise disguise = new MobDisguise(dtype);
             disguise.setEntity(player);
             disguise.startDisguise();
         } catch (IllegalArgumentException e) {

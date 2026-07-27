@@ -3,7 +3,7 @@
 
     <groupId>com.hideseek</groupId>
     <artifactId>cachecache</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -18,8 +18,8 @@
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
         <repository>
-            <id>dmulloy2-repo</id>
-            <url>https://repo.dmulloy2.net/repository/public/</url>
+            <id>libsdisguises</id>
+            <url>https://mvn.lib.co.nz/public/</url>
         </repository>
     </repositories>
 
@@ -32,9 +32,9 @@
         </dependency>
         <!-- LibsDisguises : nécessaire pour déguiser les joueurs en mobs (Paper seul ne le permet pas) -->
         <dependency>
-            <groupId>com.github.libraryaddict.disguises</groupId>
+            <groupId>me.libraryaddict.disguises</groupId>
             <artifactId>libsdisguises</artifactId>
-            <version>10.0.36</version>
+            <version>11.0.13</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

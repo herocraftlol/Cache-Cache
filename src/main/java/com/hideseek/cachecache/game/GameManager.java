@@ -35,7 +35,7 @@ public class GameManager {
 
     public boolean joinGame(Player p, GameMap map) {
         if (!map.isSaved()) {
-            p.sendMessage(net.kyori.adventure.text.Msg.of("§cCette map n'est pas encore prête."));
+            p.sendMessage(Msg.of("§cCette map n'est pas encore prête."));
             return false;
         }
         GameSession session = getOrCreateSession(map);
@@ -50,7 +50,7 @@ public class GameManager {
         session.getSpectators().add(p.getUniqueId());
         p.teleport(session.getMap().getPos1() != null ? session.getMap().getPos1() : p.getLocation());
         p.setGameMode(org.bukkit.GameMode.SPECTATOR);
-        p.sendMessage(net.kyori.adventure.text.Msg.of("§7Vous observez la partie en cours."));
+        p.sendMessage(Msg.of("§7Vous observez la partie en cours."));
     }
 
     public void quitToHub(Player p) {
