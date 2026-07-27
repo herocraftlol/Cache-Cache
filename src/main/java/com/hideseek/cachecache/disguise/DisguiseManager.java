@@ -2,8 +2,8 @@ package com.hideseek.cachecache.disguise;
 
 import me.libraryaddict.disguise.DisguiseAPI;
 import me.libraryaddict.disguise.disguisetypes.Disguise;
-import me.libraryaddict.disguise.disguisetypes.DisguiseType;
 import me.libraryaddict.disguise.disguisetypes.MobDisguise;
+import me.libraryaddict.disguise.disguisetypes.DisguiseType;
 import com.hideseek.cachecache.CacheCachePlugin;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;

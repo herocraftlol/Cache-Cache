@@ -102,6 +102,34 @@ public class PlayerListener implements Listener {
         }
     }
 
+    /**
+     * Le Seeker one-shot instantanément n'importe quel mob (décor ou naturel) qu'il frappe,
+     * exactement comme s'il touchait un joueur caché — puisqu'il ne peut pas savoir lequel
+     * est réel. Ça consomme aussi un coup de son quota (killmax), donc s'acharner sur les
+     * décors sans discernement peut lui coûter la partie.
+     */
+    @EventHandler
+    public void onSeekerHitsMob(EntityDamageByEntityEvent e) {
+        if (e.getEntity() instanceof Player) return; // les joueurs sont gérés par onDamage
+        if (!(e.getEntity() instanceof LivingEntity mob)) return;
+        if (!(e.getDamager() instanceof Player attacker)) return;
+
+        GameSession session = sessionOf(attacker);
+        if (session == null || session.getState() != GameState.RUNNING) return;
+        if (!session.isSeeker(attacker.getUniqueId())) return;
+
+        e.setCancelled(true);
+
+        if (!session.seekerHasKillsLeft(attacker.getUniqueId())) {
+            attacker.sendMessage(Msg.of("§cVous n'avez plus de coups disponibles !"));
+            return;
+        }
+
+        session.registerSeekerKill(attacker.getUniqueId());
+        mob.setHealth(0);
+        mob.getWorld().playSound(mob.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
+    }
+
     @EventHandler
     public void onGenericDamage(EntityDamageEvent e) {
         if (!(e.getEntity() instanceof Player p)) return;

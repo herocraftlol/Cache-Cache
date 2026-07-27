@@ -211,6 +211,17 @@ public class GameSession {
     private void tickRunning() {
         elapsedTicks++;
 
+        // Réaffirmation périodique de la non-collision des cachés : certains plugins de
+        // déguisement resynchronisent les métadonnées d'entité (dont "collidable") à
+        // intervalle régulier pour coller au mob imité, ce qui peut annuler notre
+        // setCollidable(false) initial et faire "bouger" le joueur via les collisions.
+        if (elapsedTicks % 20 == 0) {
+            for (UUID id : aliveHidden) {
+                Player p = Bukkit.getPlayer(id);
+                if (p != null && p.isCollidable()) p.setCollidable(false);
+            }
+        }
+
         if (!timeIndefinite && !hasScenario(Scenario.INFINITE_TIME)) {
             ticksLeft--;
             if (ticksLeft <= 0) {

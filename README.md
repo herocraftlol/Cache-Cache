@@ -112,13 +112,20 @@ reste modifiable normalement par tout le monde.
   Seeker inclus — est désormais strictement bloqué dans la zone de l'arène : s'il atteint
   le bord, il est renvoyé au centre de l'arène (avec un message, limité à une fois toutes
   les 3s pour ne pas spammer).
-- **Correctif "je bouge tout seul" en tant que caché** : c'était un effet de bord classique
-  de LibsDisguises. Par défaut, il redimensionne la hitbox réelle du joueur pour coller à
-  celle du mob (ce qui peut le coincer dans le décor et le faire glisser tout seul quand le
-  serveur le recorrige), et il envoie de fausses vélocités imitant les animations du mob
-  (saut de lapin, glissade de slime...) qui perturbent le mouvement réel. J'ai désactivé
-  ces deux comportements (`setModifyBoundingBox(false)` et `setVelocitySent(false)`) : la
-  hitbox du joueur reste sa hitbox normale de joueur, seul l'aspect visuel change.
+- **Correctif "je bouge tout seul" (renforcé)** : en plus de `setModifyBoundingBox(false)`
+  et `setVelocitySent(false)`, le plugin réaffirme maintenant `setCollidable(false)` sur
+  chaque joueur caché toutes les secondes pendant la partie. Certains plugins de
+  déguisement resynchronisent périodiquement les métadonnées d'entité (dont l'état de
+  collision) pour coller au mob imité, ce qui pouvait annuler notre réglage initial et
+  provoquer ce mouvement parasite. Si le souci persiste après cette mise à jour, dis-moi
+  avec quel(s) type(s) de mob précis ça arrive : ça m'aiderait à cibler si c'est un type de
+  déguisement particulier qui pose problème côté LibsDisguises.
+- **Le Seeker one-shot aussi les mobs** : dès qu'il frappe n'importe quel mob (un décor de
+  camouflage ou un mob naturel de la map), celui-ci meurt instantanément — exactement
+  comme s'il touchait un joueur cousin caché, puisqu'il ne peut pas savoir lequel est réel.
+  Ça consomme également un coup de son quota (killmax) : s'acharner sans discernement sur
+  les décors peut donc lui faire perdre la partie en épuisant ses coups avant d'avoir
+  trouvé tout le monde.
 
 
 ## Simplifications assumées / points à tester en jeu
