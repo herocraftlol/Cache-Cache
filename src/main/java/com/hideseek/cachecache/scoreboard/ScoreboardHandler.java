@@ -1,66 +1,135 @@
 package com.hideseek.cachecache.scoreboard;
 
-import com.hideseek.cachecache.util.Msg;
-
 import com.hideseek.cachecache.game.GameSession;
-import net.kyori.adventure.text.Component;
+import com.hideseek.cachecache.map.Scenario;
+import com.hideseek.cachecache.util.Msg;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.*;
 
+/**
+ * Un seul scoreboard (en réalité deux gabarits : caché / Seeker) est créé UNE FOIS par
+ * arène et réutilisé pour toutes les parties qui s'y dérouleront, au lieu d'en recréer un
+ * nouveau par joueur à chaque tick. On ne met à jour que le texte des lignes (via des
+ * Team dont on change juste le prefix), jamais les entrées elles-mêmes : pas de flicker,
+ * pas de fuite de mémoire, une seule identité de scoreboard par arène.
+ */
 public class ScoreboardHandler {
 
+    private static final int MAX_LINES = 10;
+
     private final GameSession session;
+
+    private Scoreboard hiddenBoard;
+    private Objective hiddenObjective;
+    private Team[] hiddenLines;
+
+    private Scoreboard seekerBoard;
+    private Objective seekerObjective;
+    private Team[] seekerLines;
 
     public ScoreboardHandler(GameSession session) {
         this.session = session;
     }
 
-    public void update() {
-        for (Player p : session.getAllOnlinePlayers()) {
-            applyBoard(p);
-        }
-    }
-
-    private void applyBoard(Player p) {
-        ScoreboardManager sm = p.getServer().getScoreboardManager();
+    private void ensureBuilt() {
+        if (hiddenBoard != null) return;
+        ScoreboardManager sm = Bukkit.getScoreboardManager();
         if (sm == null) return;
-        Scoreboard board = sm.getNewScoreboard();
-        Objective obj = board.registerNewObjective("cc", Criteria.DUMMY,
-                Msg.of("§6§lCACHE-CACHE"));
-        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
-        int line = 15;
-        boolean isSeeker = session.isSeeker(p.getUniqueId());
+        hiddenBoard = sm.getNewScoreboard();
+        hiddenObjective = hiddenBoard.registerNewObjective("cc_hidden", Criteria.DUMMY, Msg.of("§6§lCACHE-CACHE"));
+        hiddenObjective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        hiddenLines = buildLines(hiddenBoard, hiddenObjective);
 
-        setLine(obj, line--, "§7Map: §f" + session.getMap().getName());
-        setLine(obj, line--, "§8—————————");
-        setLine(obj, line--, "§eTemps restant:");
-        setLine(obj, line--, "§f" + session.getFormattedTimeLeft());
-        setLine(obj, line--, "§8—————————");
-        setLine(obj, line--, "§aCachés restants:");
-        setLine(obj, line--, "§f" + session.getAlivePlayersCount());
+        seekerBoard = sm.getNewScoreboard();
+        seekerObjective = seekerBoard.registerNewObjective("cc_seeker", Criteria.DUMMY, Msg.of("§6§lCACHE-CACHE"));
+        seekerObjective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        seekerLines = buildLines(seekerBoard, seekerObjective);
+    }
 
-        if (isSeeker) {
-            setLine(obj, line--, "§8—————————");
-            setLine(obj, line--, "§cVos coups:");
-            int killMax = session.getMap().getKillMax();
-            boolean infinite = session.hasScenario(com.hideseek.cachecache.map.Scenario.INFINITE_HITS);
-            setLine(obj, line--, infinite ? "§f∞" : "§f" + session.getKillsUsed(p.getUniqueId()) + "/" + killMax);
+    private Team[] buildLines(Scoreboard board, Objective objective) {
+        Team[] lines = new Team[MAX_LINES];
+        for (int i = 0; i < MAX_LINES; i++) {
+            String entry = "§" + Integer.toHexString(i) + "§r"; // entrée invisible unique
+            Team team = board.registerNewTeam("l" + i);
+            team.addEntry(entry);
+            objective.getScore(entry).setScore(MAX_LINES - i);
+            lines[i] = team;
         }
-
-        p.setScoreboard(board);
+        return lines;
     }
 
-    private void setLine(Objective obj, int score, String text) {
-        // Bukkit n'autorise pas deux entrées de scoreboard identiques : on pad avec des
-        // codes couleurs invisibles (uniques par ligne) pour éviter toute collision.
-        String unique = text + invisiblePad(score);
-        obj.getScore(unique).setScore(score);
+    /**
+     * Assigne le bon scoreboard (caché/Seeker) au joueur. À appeler une seule fois quand
+     * le joueur entre en partie (ou change de rôle), pas à chaque tick.
+     */
+    public void assign(Player p, boolean seeker) {
+        ensureBuilt();
+        if (hiddenBoard == null) return;
+        p.setScoreboard(seeker ? seekerBoard : hiddenBoard);
     }
 
-    private String invisiblePad(int score) {
-        StringBuilder sb = new StringBuilder("§r");
-        for (int i = 0; i < score; i++) sb.append("§r");
-        return sb.toString();
+    public void assignSpectator(Player p) {
+        assign(p, false);
+    }
+
+    public void update() {
+        ensureBuilt();
+        if (hiddenBoard == null) return;
+
+        String mapLine = "§7Map: §f" + session.getMap().getName();
+        String sep = "§8—————————";
+        String timeLabel = "§eTemps restant:";
+        String timeValue = "§f" + session.getFormattedTimeLeft();
+        String countLabel = "§aCachés restants:";
+        String countValue = "§f" + session.getAlivePlayersCount();
+
+        setLine(hiddenLines, 0, mapLine);
+        setLine(hiddenLines, 1, sep);
+        setLine(hiddenLines, 2, timeLabel);
+        setLine(hiddenLines, 3, timeValue);
+        setLine(hiddenLines, 4, sep);
+        setLine(hiddenLines, 5, countLabel);
+        setLine(hiddenLines, 6, countValue);
+        for (int i = 7; i < MAX_LINES; i++) setLine(hiddenLines, i, "");
+
+        setLine(seekerLines, 0, mapLine);
+        setLine(seekerLines, 1, sep);
+        setLine(seekerLines, 2, timeLabel);
+        setLine(seekerLines, 3, timeValue);
+        setLine(seekerLines, 4, sep);
+        setLine(seekerLines, 5, countLabel);
+        setLine(seekerLines, 6, countValue);
+        setLine(seekerLines, 7, sep);
+        setLine(seekerLines, 8, "§cVos coups:");
+
+        boolean infinite = session.hasScenario(Scenario.INFINITE_HITS);
+        int killMax = session.getMap().getKillMax();
+        // La ligne de coups restants est personnelle : on l'affiche via le nom d'équipe du
+        // joueur lui-même quand nécessaire, sinon on garde une valeur générique.
+        setLine(seekerLines, 9, infinite ? "§f∞" : "§f.../" + killMax);
+
+        for (Player p : session.getAllOnlinePlayers()) {
+            if (session.isSeeker(p.getUniqueId())) {
+                int used = session.getKillsUsed(p.getUniqueId());
+                String value = infinite ? "§f∞" : "§f" + used + "/" + killMax;
+                seekerLines[9].prefix(Msg.of(value));
+                // Note : comme le scoreboard "seeker" est partagé entre tous les Seekers de
+                // l'arène, avec plusieurs Seekers actifs simultanément la ligne de coups
+                // affiche celle du dernier Seeker mis à jour dans cette boucle.
+            }
+        }
+    }
+
+    private void setLine(Team[] lines, int index, String text) {
+        if (lines == null || index >= lines.length) return;
+        lines[index].prefix(Msg.of(text.length() > 60 ? text.substring(0, 60) : text));
+    }
+
+    /** Réinitialise le joueur sur le scoreboard principal du serveur (fin de partie / sortie d'arène). */
+    public static void reset(Player p) {
+        ScoreboardManager sm = Bukkit.getScoreboardManager();
+        if (sm != null) p.setScoreboard(sm.getMainScoreboard());
     }
 }

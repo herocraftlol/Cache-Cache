@@ -33,7 +33,7 @@ public class DisguiseManager {
         if (!available) return;
         try {
             DisguiseType dtype = DisguiseType.valueOf(type.name());
-            MobDisguise disguise = new MobDisguise(dtype);
+            Disguise disguise = new MobDisguise(dtype);
             disguise.setEntity(player);
             disguise.startDisguise();
         } catch (IllegalArgumentException e) {

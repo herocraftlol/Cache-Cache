@@ -61,6 +61,7 @@ public class GameManager {
         session.getSpectators().add(p.getUniqueId());
         p.teleport(session.getMap().getPos1() != null ? session.getMap().getPos1() : p.getLocation());
         p.setGameMode(org.bukkit.GameMode.SPECTATOR);
+        session.getScoreboardHandler().assignSpectator(p);
         p.sendMessage(Msg.of("§7Vous observez la partie en cours."));
     }
 
@@ -77,6 +78,8 @@ public class GameManager {
         p.setGameMode(org.bukkit.GameMode.ADVENTURE);
         p.getInventory().clear();
         p.setWalkSpeed(0.2f);
+        p.setCollidable(true);
+        com.hideseek.cachecache.scoreboard.ScoreboardHandler.reset(p);
     }
 
     public void resetSession(GameSession session) {

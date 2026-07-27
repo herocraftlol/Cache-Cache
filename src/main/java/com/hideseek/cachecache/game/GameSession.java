@@ -62,6 +62,7 @@ public class GameSession {
     }
 
     public GameMap getMap() { return map; }
+    public ScoreboardHandler getScoreboardHandler() { return scoreboardHandler; }
     public GameState getState() { return state; }
     public void setState(GameState state) { this.state = state; }
 
@@ -119,6 +120,7 @@ public class GameSession {
         p.teleport(loc);
         p.setGameMode(GameMode.ADVENTURE);
         p.getInventory().clear();
+        com.hideseek.cachecache.scoreboard.ScoreboardHandler.reset(p);
     }
 
     private void broadcastLobby(Component msg) {
@@ -281,6 +283,8 @@ public class GameSession {
             plugin.getDisguiseManager().disguiseAsMob(p, type);
             teleportRandomInRegion(p);
             p.setGameMode(GameMode.SURVIVAL);
+            p.setCollidable(false); // le mob attribué ne pousse jamais le joueur (et inversement)
+            scoreboardHandler.assign(p, false);
         }
 
         for (UUID id : seekers) {
@@ -289,6 +293,7 @@ public class GameSession {
             p.teleport(map.getSpawnSeeker());
             p.setGameMode(GameMode.SURVIVAL);
             equipSeeker(p);
+            scoreboardHandler.assign(p, true);
             p.sendMessage(Msg.of("§c§lVous êtes le SEEKER ! Trouvez et éliminez tout le monde."));
         }
 
@@ -435,11 +440,13 @@ public class GameSession {
     public void onHiddenEliminated(Player victim) {
         aliveHidden.remove(victim.getUniqueId());
         plugin.getDisguiseManager().undisguise(victim);
+        victim.setCollidable(true); // fin du camouflage, collision normale restaurée
 
         if (map.isVirusMode()) {
             seekers.add(victim.getUniqueId());
             victim.setGameMode(GameMode.SURVIVAL);
             equipSeeker(victim);
+            scoreboardHandler.assign(victim, true);
             victim.sendMessage(Msg.of("§c§lVous avez été infecté ! Vous êtes maintenant un Seeker."));
         } else {
             spectators.add(victim.getUniqueId());
@@ -447,6 +454,7 @@ public class GameSession {
             victim.getInventory().clear();
             ItemStack watch = taggedItem(Material.CLOCK, "leave_watch", "§7Clic pour rejoindre le hub");
             victim.getInventory().setItem(0, watch);
+            scoreboardHandler.assignSpectator(victim);
             victim.sendMessage(Msg.of("§7Vous avez été éliminé. Vous êtes maintenant spectateur."));
         }
         checkWinConditions();
@@ -504,6 +512,7 @@ public class GameSession {
             p.showTitle(title);
             p.setGameMode(GameMode.SPECTATOR);
             plugin.getDisguiseManager().undisguise(p);
+            p.setCollidable(true);
         }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getGameManager().resetSession(this), 200L);

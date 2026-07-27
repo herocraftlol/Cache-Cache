@@ -58,6 +58,8 @@ Le jar final sera dans `target/CacheCache.jar`.
 /cc <nom> rename <nouveau nom>  -> renommer la map (confirmation par message)
 /cc list                        -> lister les maps
 /cc gui                         -> ouvrir la liste des parties
+/cc join <nom>                  -> rejoindre une arène
+/cc leave                       -> quitter l'arène actuelle
 /cc hub                         -> définir le hub principal
 /cc help                        -> aide
 ```
@@ -86,6 +88,24 @@ reste modifiable normalement par tout le monde.
   désormais libres de voler dans toute la zone de jeu (avec une marge confortable), sans
   être renvoyés en boucle vers le lobby.
 - **Renommage de map** : `/cc <map> rename <nouveau nom>` avec message de confirmation.
+- **`/cc join <map>` / `/cc leave`** : rejoindre ou quitter une arène par commande (en plus
+  du GUI). `/cc leave` fonctionne à tout moment (lobby, en jeu, spectateur) et ramène
+  proprement au hub.
+- **Scoreboard unique par arène** : au lieu de recréer un scoreboard par joueur à chaque
+  tick, chaque arène possède désormais deux gabarits de scoreboard persistants (un pour
+  les cachés, un pour le/les Seeker(s)), mis à jour en place (juste le texte des lignes
+  change, jamais les objets). Le scoreboard est assigné une seule fois à l'entrée en jeu,
+  et retiré (retour au scoreboard principal du serveur) dès que le joueur quitte l'arène
+  — à la fin d'une partie ou via `/cc leave`. À noter : si plusieurs Seekers sont actifs
+  en même temps sur une même arène, la ligne "vos coups" étant partagée par le même
+  scoreboard, elle affichera la valeur du dernier Seeker mis à jour plutôt qu'une valeur
+  strictement individuelle — dis-moi si tu veux que j'aille plus loin là-dessus (ça
+  demanderait un système par paquets pour un vrai affichage 100% individuel).
+- **Aucune collision pour les cachés** : en plus des vrais mobs de camouflage (déjà
+  non-collidables), le joueur caché lui-même n'a plus aucune collision pendant qu'il est
+  déguisé (`setCollidable(false)`) : plus aucun mob ni joueur ne peut le pousser. La
+  collision normale est restaurée dès qu'il est éliminé, infecté (virus), ou que la partie
+  se termine.
 
 
 ## Simplifications assumées / points à tester en jeu

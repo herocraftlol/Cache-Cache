@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class CCCommand implements CommandExecutor, TabCompleter {
 
     private final CacheCachePlugin plugin;
-    private final Set<String> reserved = Set.of("create", "delete", "list", "help", "hub", "gui");
+    private final Set<String> reserved = Set.of("create", "delete", "list", "help", "hub", "gui", "join", "leave");
 
     public CCCommand(CacheCachePlugin plugin) {
         this.plugin = plugin;
@@ -42,6 +42,8 @@ public class CCCommand implements CommandExecutor, TabCompleter {
             case "delete" -> { return handleDelete(sender, args); }
             case "hub" -> { return handleHub(sender); }
             case "gui" -> { return handleGui(sender); }
+            case "join" -> { return handleJoin(sender, args); }
+            case "leave" -> { return handleLeave(sender); }
             default -> { return handleMapSubcommand(sender, args); }
         }
     }
@@ -54,6 +56,8 @@ public class CCCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Msg.of("§e/cc delete <map> §7- Supprimer une map (confirmation requise)"));
         s.sendMessage(Msg.of("§e/cc list §7- Lister les maps existantes"));
         s.sendMessage(Msg.of("§e/cc gui §7- Ouvrir la liste des parties"));
+        s.sendMessage(Msg.of("§e/cc join <map> §7- Rejoindre une arène"));
+        s.sendMessage(Msg.of("§e/cc leave §7- Quitter l'arène actuelle"));
         s.sendMessage(Msg.of("§e/cc hub §7- Définir le hub principal"));
         s.sendMessage(Msg.of("§e/cc <map> pos1|pos2|posconfirm §7- Définir la zone de jeu"));
         s.sendMessage(Msg.of("§e/cc <map> spawnseek §7- Définir le spawn du Seeker"));
@@ -145,6 +149,44 @@ public class CCCommand implements CommandExecutor, TabCompleter {
         if (!(s instanceof Player p)) { s.sendMessage(Msg.of("§cCommande réservée aux joueurs.")); return true; }
         p.openInventory(MapListGui.build(plugin));
         return true;
+    }
+
+    // ------------------------------------------------------------ JOIN/LEAVE
+
+    private boolean handleJoin(CommandSender s, String[] args) {
+        if (!(s instanceof Player p)) { s.sendMessage(Msg.of("§cCommande réservée aux joueurs.")); return true; }
+        if (args.length < 2) { s.sendMessage(Msg.of("§cUsage: /cc join <map>")); return true; }
+        GameMap map = plugin.getMapManager().getMap(args[1]);
+        if (map == null) { s.sendMessage(Msg.of("§cCette map n'existe pas.")); return true; }
+        if (isPlayerInAnyArena(p)) {
+            s.sendMessage(Msg.of("§cVous êtes déjà dans une arène. Utilisez /cc leave pour la quitter d'abord."));
+            return true;
+        }
+        plugin.getGameManager().joinGame(p, map);
+        return true;
+    }
+
+    private boolean handleLeave(CommandSender s) {
+        if (!(s instanceof Player p)) { s.sendMessage(Msg.of("§cCommande réservée aux joueurs.")); return true; }
+        if (!isPlayerInAnyArena(p)) {
+            s.sendMessage(Msg.of("§cVous n'êtes dans aucune arène actuellement."));
+            return true;
+        }
+        plugin.getGameManager().quitToHub(p);
+        s.sendMessage(Msg.of("§aVous avez quitté l'arène."));
+        return true;
+    }
+
+    private boolean isPlayerInAnyArena(Player p) {
+        for (var session : plugin.getGameManager().getAllSessions()) {
+            if (session.getLobbyPlayers().contains(p.getUniqueId())
+                    || session.getAliveHidden().contains(p.getUniqueId())
+                    || session.getSeekers().contains(p.getUniqueId())
+                    || session.getSpectators().contains(p.getUniqueId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // -------------------------------------------------------- MAP EDIT
@@ -380,12 +422,12 @@ public class CCCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("create", "delete", "list", "help", "hub", "gui"));
+            List<String> options = new ArrayList<>(List.of("create", "delete", "list", "help", "hub", "gui", "join", "leave"));
             options.addAll(plugin.getMapManager().getMaps().stream().map(GameMap::getName).toList());
             return filter(options, args[0]);
         }
         if (args.length == 2) {
-            if (args[0].equalsIgnoreCase("delete")) {
+            if (args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("join")) {
                 return filter(plugin.getMapManager().getMaps().stream().map(GameMap::getName).toList(), args[1]);
             }
             if (plugin.getMapManager().exists(args[0])) {
