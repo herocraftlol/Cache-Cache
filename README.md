@@ -55,11 +55,38 @@ Le jar final sera dans `target/CacheCache.jar`.
 /cc <nom> save                  -> valider la map
 /cc <nom> config                -> repasser en édition
 /cc delete <nom>                -> supprimer (confirmation requise)
+/cc <nom> rename <nouveau nom>  -> renommer la map (confirmation par message)
 /cc list                        -> lister les maps
 /cc gui                         -> ouvrir la liste des parties
 /cc hub                         -> définir le hub principal
 /cc help                        -> aide
 ```
+
+## Permission admin
+
+`cachecache.admin` (par défaut : op) permet de casser/poser des blocs sur une map même
+pendant qu'une partie y est en cours. Sans cette permission, la map est incassable
+uniquement pour les joueurs qui participent à une partie en cours (Seeker, caché ou
+spectateur d'une partie RUNNING) — en dehors d'une partie (construction, édition), la map
+reste modifiable normalement par tout le monde.
+
+## Nouveautés de cette mise à jour
+
+- **Zone éditable en mode config** : après `/cc <map> config`, toutes les commandes de
+  configuration (pos1, pos2, posconfirm, spawnseek, lobby, time, killmax, etc.) sont de
+  nouveau utilisables, même si la map était déjà sauvegardée.
+- **Vrais mobs sur la map** : au lancement d'une partie, de vrais mobs (selon les
+  pourcentages configurés) apparaissent aléatoirement un peu partout sur la map, pour que
+  les joueurs déguisés se fondent réellement dans la masse. Ces mobs sont rendus
+  non-collidables (`setCollidable(false)`) pour ne jamais pousser les joueurs.
+- **Plateforme du lobby** : `/cc <map> lobby` génère désormais une plateforme de 8x8 blocs
+  invisibles (BARRIER) centrée sous le point de lobby, et les joueurs en attente sont
+  confinés à cette zone (impossible de sortir de la plateforme).
+- **Spectateurs libres** : les spectateurs (morts en jeu ou observateurs via le GUI) sont
+  désormais libres de voler dans toute la zone de jeu (avec une marge confortable), sans
+  être renvoyés en boucle vers le lobby.
+- **Renommage de map** : `/cc <map> rename <nouveau nom>` avec message de confirmation.
+
 
 ## Simplifications assumées / points à tester en jeu
 

@@ -69,6 +69,7 @@ public class CCCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Msg.of("§e/cc <map> scenario §7- Ouvrir le GUI des scénarios"));
         s.sendMessage(Msg.of("§e/cc <map> save §7- Sauvegarder/valider la map"));
         s.sendMessage(Msg.of("§e/cc <map> config §7- Repasser la map en édition"));
+        s.sendMessage(Msg.of("§e/cc <map> rename <nouveau nom> §7- Renommer la map"));
     }
 
     // ------------------------------------------------------------- LIST
@@ -169,7 +170,7 @@ public class CCCommand implements CommandExecutor, TabCompleter {
             s.sendMessage(Msg.of("§cImpossible de modifier une map dont la partie est en cours."));
             return true;
         }
-        if (map.isSaved() && !sub.equals("config") && !sub.equals("scenario")) {
+        if (map.isSaved() && !map.isInMaintenance() && !sub.equals("config") && !sub.equals("scenario") && !sub.equals("rename")) {
             s.sendMessage(Msg.of("§cCette map est sauvegardée. Utilisez /cc " + mapName + " config pour la modifier."));
             return true;
         }
@@ -179,7 +180,13 @@ public class CCCommand implements CommandExecutor, TabCompleter {
             case "pos2" -> { map.setPos2(p.getLocation()); plugin.getMapManager().save(map); s.sendMessage(Msg.of("§aPos2 définie.")); yield true; }
             case "posconfirm" -> handlePosConfirm(s, map);
             case "spawnseek" -> { map.setSpawnSeeker(p.getLocation()); plugin.getMapManager().save(map); s.sendMessage(Msg.of("§aSpawn du Seeker défini.")); yield true; }
-            case "lobby" -> { map.setLobby(p.getLocation()); plugin.getMapManager().save(map); s.sendMessage(Msg.of("§aLobby défini.")); yield true; }
+            case "lobby" -> {
+                map.setLobby(p.getLocation());
+                plugin.getMapManager().save(map);
+                plugin.getGameManager().buildLobbyPlatform(map);
+                s.sendMessage(Msg.of("§aLobby défini, plateforme d'attente générée (8x8)."));
+                yield true;
+            }
             case "time" -> handleTime(s, map, args);
             case "killmax" -> handleKillmax(s, map, args);
             case "maxplayers" -> handleMaxPlayers(s, map, args);
@@ -190,6 +197,7 @@ public class CCCommand implements CommandExecutor, TabCompleter {
             case "scenario" -> { p.openInventory(ScenarioGui.build(map)); yield true; }
             case "save" -> handleSave(s, map);
             case "config" -> handleConfig(s, map);
+            case "rename" -> handleRename(s, map, args);
             default -> { s.sendMessage(Msg.of("§cSous-commande inconnue.")); yield true; }
         };
     }
@@ -345,6 +353,28 @@ public class CCCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleRename(CommandSender s, GameMap map, String[] args) {
+        if (args.length < 3) { s.sendMessage(Msg.of("§cUsage: /cc " + map.getName() + " rename <nouveau nom>")); return true; }
+        String newName = args[2];
+        if (reserved.contains(newName.toLowerCase(Locale.ROOT))) {
+            s.sendMessage(Msg.of("§cCe nom est réservé, choisissez-en un autre."));
+            return true;
+        }
+        if (plugin.getMapManager().exists(newName)) {
+            s.sendMessage(Msg.of("§cUne map avec ce nom existe déjà."));
+            return true;
+        }
+        String oldName = map.getName();
+        boolean ok = plugin.getMapManager().renameMap(oldName, newName);
+        if (!ok) {
+            s.sendMessage(Msg.of("§cImpossible de renommer cette map."));
+            return true;
+        }
+        plugin.getGameManager().renameSessionKey(oldName, newName);
+        s.sendMessage(Msg.of("§aLa map §f" + oldName + " §aa été renommée en §f" + newName + " §a!"));
+        return true;
+    }
+
     // -------------------------------------------------------- TAB COMPLETE
 
     @Override
@@ -360,7 +390,7 @@ public class CCCommand implements CommandExecutor, TabCompleter {
             }
             if (plugin.getMapManager().exists(args[0])) {
                 return filter(List.of("pos1", "pos2", "posconfirm", "spawnseek", "lobby", "time", "killmax",
-                        "maxplayers", "seeker", "mob", "listmob", "hunt", "scenario", "save", "config"), args[1]);
+                        "maxplayers", "seeker", "mob", "listmob", "hunt", "scenario", "save", "config", "rename"), args[1]);
             }
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("mob")) {

@@ -5,6 +5,7 @@ import com.hideseek.cachecache.util.Msg;
 import com.hideseek.cachecache.CacheCachePlugin;
 import com.hideseek.cachecache.map.GameMap;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -31,6 +32,16 @@ public class GameManager {
 
     public GameSession getSession(String mapName) {
         return sessions.get(mapName.toLowerCase(Locale.ROOT));
+    }
+
+    /**
+     * Met à jour la clé de session utilisée en mémoire suite à un renommage de map.
+     */
+    public void renameSessionKey(String oldName, String newName) {
+        GameSession session = sessions.remove(oldName.toLowerCase(Locale.ROOT));
+        if (session != null) {
+            sessions.put(newName.toLowerCase(Locale.ROOT), session);
+        }
     }
 
     public boolean joinGame(Player p, GameMap map) {
@@ -80,6 +91,25 @@ public class GameManager {
     }
 
     public Collection<GameSession> getAllSessions() { return sessions.values(); }
+
+    /**
+     * Construit une plateforme de blocs invisibles (BARRIER) de 8x8, centrée sur le point
+     * de lobby, un bloc sous les pieds des joueurs, pour qu'ils ne tombent jamais en attente.
+     */
+    public void buildLobbyPlatform(GameMap map) {
+        Location lobby = map.getLobby();
+        if (lobby == null) return;
+        World world = lobby.getWorld();
+        int y = lobby.getBlockY() - 1;
+        int centerX = lobby.getBlockX();
+        int centerZ = lobby.getBlockZ();
+        int half = GameMap.LOBBY_PLATFORM_SIZE / 2;
+        for (int dx = -half; dx < half; dx++) {
+            for (int dz = -half; dz < half; dz++) {
+                world.getBlockAt(centerX + dx, y, centerZ + dz).setType(Material.BARRIER);
+            }
+        }
+    }
 
     /**
      * Cherche un emplacement aléatoire au sol (bloc plein en dessous, air au-dessus),

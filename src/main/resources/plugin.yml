@@ -1,5 +1,5 @@
 name: CacheCache
-version: 1.0.1
+version: 1.0.2
 main: com.hideseek.cachecache.CacheCachePlugin
 api-version: '1.21'
 softdepend: [LibsDisguises]
@@ -10,3 +10,8 @@ commands:
   cc:
     description: Commande principale du plugin Cache-Cache
     usage: /cc help
+
+permissions:
+  cachecache.admin:
+    description: Autorise à casser/poser des blocs sur les maps même pendant une partie en cours
+    default: op

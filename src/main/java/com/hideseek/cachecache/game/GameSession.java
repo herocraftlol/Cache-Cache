@@ -41,6 +41,7 @@ public class GameSession {
     private final List<GameMap.HuntEntry> pendingHunts = new ArrayList<>();
     private final Map<UUID, Long> anvilCooldown = new HashMap<>();
     private final Map<UUID, Long> blazeCooldown = new HashMap<>();
+    private final List<UUID> decoyMobs = new ArrayList<>();
 
     private final Random random = new Random();
     private final ScoreboardHandler scoreboardHandler;
@@ -292,7 +293,45 @@ public class GameSession {
         }
 
         giveHiddenScenarioItems();
+        spawnDecoyMobs();
         broadcastAll(Msg.of("§7Le Seeker est aveugle et immobile pendant 15 secondes..."));
+    }
+
+    /**
+     * Fait apparaître de vrais mobs (selon les pourcentages configurés) un peu partout sur
+     * la map, pour que les joueurs déguisés se fondent réellement dans la masse. Sans ça,
+     * un joueur déguisé en cochon isolé au milieu de rien se repère instantanément.
+     */
+    private void spawnDecoyMobs() {
+        despawnDecoyMobs();
+        List<EntityType> pool = buildWeightedMobPool();
+        if (pool.isEmpty()) return;
+
+        int decoyCount = Math.max(12, aliveHidden.size() * 4);
+        for (int i = 0; i < decoyCount; i++) {
+            Location loc = plugin.getGameManager().findRandomGroundLocation(map);
+            if (loc == null) continue;
+            EntityType type = pool.get(random.nextInt(pool.size()));
+            try {
+                org.bukkit.entity.Entity entity = loc.getWorld().spawnEntity(loc, type);
+                if (entity instanceof org.bukkit.entity.LivingEntity living) {
+                    living.setCollidable(false); // évite de pousser les joueurs
+                    living.setRemoveWhenFarAway(false);
+                    living.setPersistent(true);
+                }
+                decoyMobs.add(entity.getUniqueId());
+            } catch (IllegalArgumentException ignored) {
+                // Certains EntityType ne sont pas invocables directement (ex: PLAYER)
+            }
+        }
+    }
+
+    private void despawnDecoyMobs() {
+        for (UUID id : decoyMobs) {
+            org.bukkit.entity.Entity e = Bukkit.getEntity(id);
+            if (e != null) e.remove();
+        }
+        decoyMobs.clear();
     }
 
     private void equipSeeker(Player p) {
@@ -452,6 +491,7 @@ public class GameSession {
     public void endGame(boolean hiddenWin, String reasonMessage) {
         if (state == GameState.ENDING) return;
         state = GameState.ENDING;
+        despawnDecoyMobs();
         broadcastAll(Msg.of(reasonMessage));
 
         for (Player p : getAllOnlinePlayers()) {

@@ -50,6 +50,25 @@ public class MapManager {
         }
     }
 
+    /**
+     * Renomme une map existante : met à jour son nom interne, déplace son fichier de
+     * sauvegarde, et met à jour la clé utilisée dans le cache en mémoire.
+     */
+    public boolean renameMap(String oldName, String newName) {
+        GameMap map = getMap(oldName);
+        if (map == null) return false;
+        if (exists(newName)) return false;
+
+        maps.remove(oldName.toLowerCase(Locale.ROOT));
+        File oldFile = new File(mapsFolder, oldName.toLowerCase(Locale.ROOT) + ".yml");
+        if (oldFile.exists()) oldFile.delete();
+
+        map.setName(newName);
+        maps.put(newName.toLowerCase(Locale.ROOT), map);
+        save(map);
+        return true;
+    }
+
     public Location getHub() { return hub; }
 
     public void setHub(Location hub) {

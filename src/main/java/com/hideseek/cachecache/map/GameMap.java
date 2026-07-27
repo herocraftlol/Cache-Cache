@@ -7,6 +7,8 @@ import java.util.*;
 
 public class GameMap {
 
+    public static final int LOBBY_PLATFORM_SIZE = 8;
+
     public static class HuntEntry {
         public int triggerTick;
         public int fireworkCount;
@@ -16,7 +18,7 @@ public class GameMap {
         }
     }
 
-    private final String name;
+    private String name;
 
     private Location pos1;
     private Location pos2;
@@ -45,6 +47,7 @@ public class GameMap {
     }
 
     public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
     public Location getPos1() { return pos1; }
     public void setPos1(Location pos1) { this.pos1 = pos1; this.posConfirmed = false; }

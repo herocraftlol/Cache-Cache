@@ -29,7 +29,7 @@ public class CacheCachePlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new GuiListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
-        getServer().getPluginManager().registerEvents(new MapProtectionListener(), this);
+        getServer().getPluginManager().registerEvents(new MapProtectionListener(this), this);
 
         getLogger().info("CacheCache activé !");
     }

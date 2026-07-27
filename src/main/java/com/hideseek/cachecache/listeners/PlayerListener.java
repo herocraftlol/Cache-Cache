@@ -228,19 +228,48 @@ public class PlayerListener implements Listener {
         Player p = e.getPlayer();
         GameSession session = sessionOf(p);
         if (session == null) return;
+        Location to = e.getTo();
+        if (to == null) return;
+
+        // Joueurs en attente dans le lobby : confinés à la plateforme 8x8
+        if (session.getLobbyPlayers().contains(p.getUniqueId())) {
+            Location lobby = session.getMap().getLobby();
+            if (lobby == null || to.getWorld() == null || !to.getWorld().equals(lobby.getWorld())) return;
+            int half = com.hideseek.cachecache.map.GameMap.LOBBY_PLATFORM_SIZE / 2;
+            int minX = lobby.getBlockX() - half;
+            int maxX = lobby.getBlockX() + half - 1;
+            int minZ = lobby.getBlockZ() - half;
+            int maxZ = lobby.getBlockZ() + half - 1;
+            if (to.getBlockX() < minX || to.getBlockX() > maxX || to.getBlockZ() < minZ || to.getBlockZ() > maxZ) {
+                Location clamped = e.getFrom().clone();
+                clamped.setPitch(to.getPitch());
+                clamped.setYaw(to.getYaw());
+                e.setTo(clamped);
+            }
+            return;
+        }
+
+        // Spectateurs (morts ou observateurs) : libres de voler dans toute la zone de jeu
         if (!session.isSpectator(p.getUniqueId())) return;
 
         GameMap map = session.getMap();
         if (map.getPos1() == null || map.getPos2() == null) return;
-        int minX = Math.min(map.getPos1().getBlockX(), map.getPos2().getBlockX());
-        int maxX = Math.max(map.getPos1().getBlockX(), map.getPos2().getBlockX());
-        int minZ = Math.min(map.getPos1().getBlockZ(), map.getPos2().getBlockZ());
-        int maxZ = Math.max(map.getPos1().getBlockZ(), map.getPos2().getBlockZ());
+        if (to.getWorld() == null || !to.getWorld().equals(map.getPos1().getWorld())) return;
 
-        Location to = e.getTo();
-        if (to.getBlockX() < minX - 5 || to.getBlockX() > maxX + 5
-                || to.getBlockZ() < minZ - 5 || to.getBlockZ() > maxZ + 5) {
-            e.setTo(e.getFrom());
+        int minX = Math.min(map.getPos1().getBlockX(), map.getPos2().getBlockX()) - 10;
+        int maxX = Math.max(map.getPos1().getBlockX(), map.getPos2().getBlockX()) + 10;
+        int minZ = Math.min(map.getPos1().getBlockZ(), map.getPos2().getBlockZ()) - 10;
+        int maxZ = Math.max(map.getPos1().getBlockZ(), map.getPos2().getBlockZ()) + 10;
+        int minY = Math.min(map.getPos1().getBlockY(), map.getPos2().getBlockY()) - 20;
+        int maxY = Math.max(map.getPos1().getBlockY(), map.getPos2().getBlockY()) + 60;
+
+        if (to.getBlockX() < minX || to.getBlockX() > maxX
+                || to.getBlockZ() < minZ || to.getBlockZ() > maxZ
+                || to.getBlockY() < minY || to.getBlockY() > maxY) {
+            Location clamped = e.getFrom().clone();
+            clamped.setPitch(to.getPitch());
+            clamped.setYaw(to.getYaw());
+            e.setTo(clamped);
         }
     }
 
