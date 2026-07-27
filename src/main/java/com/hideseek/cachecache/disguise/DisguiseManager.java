@@ -35,6 +35,16 @@ public class DisguiseManager {
             DisguiseType dtype = DisguiseType.valueOf(type.name());
             Disguise disguise = new MobDisguise(dtype);
             disguise.setEntity(player);
+
+            // Ces deux options évitent que le joueur ne "bouge tout seul" / soit repoussé :
+            // - modifyBoundingBox agrandit/réduit la hitbox réelle du joueur pour coller à
+            //   celle du mob, ce qui peut le faire coincer dans le décor et se faire
+            //   recorriger en boucle par le serveur (impression de glisser tout seul).
+            // - velocitySent fait que LibsDisguises envoie de fausses vélocités (sauts de
+            //   lapin, glissades de slime, etc.) qui perturbent le mouvement du joueur.
+            disguise.setModifyBoundingBox(false);
+            disguise.setVelocitySent(false);
+
             disguise.startDisguise();
         } catch (IllegalArgumentException e) {
             plugin.getLogger().warning("Le mob " + type + " n'a pas de déguisement correspondant dans LibsDisguises.");

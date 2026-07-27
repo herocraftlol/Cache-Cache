@@ -106,6 +106,19 @@ reste modifiable normalement par tout le monde.
   déguisé (`setCollidable(false)`) : plus aucun mob ni joueur ne peut le pousser. La
   collision normale est restaurée dès qu'il est éliminé, infecté (virus), ou que la partie
   se termine.
+- **Confinement des spectateurs à l'arène** : les cachés éliminés restent spectateurs
+  exactement là où ils sont morts (dans la zone de jeu), et tout spectateur — caché
+  éliminé, observateur via le GUI, ou joueur passé spectateur à la fin de la partie,
+  Seeker inclus — est désormais strictement bloqué dans la zone de l'arène : s'il atteint
+  le bord, il est renvoyé au centre de l'arène (avec un message, limité à une fois toutes
+  les 3s pour ne pas spammer).
+- **Correctif "je bouge tout seul" en tant que caché** : c'était un effet de bord classique
+  de LibsDisguises. Par défaut, il redimensionne la hitbox réelle du joueur pour coller à
+  celle du mob (ce qui peut le coincer dans le décor et le faire glisser tout seul quand le
+  serveur le recorrige), et il envoie de fausses vélocités imitant les animations du mob
+  (saut de lapin, glissade de slime...) qui perturbent le mouvement réel. J'ai désactivé
+  ces deux comportements (`setModifyBoundingBox(false)` et `setVelocitySent(false)`) : la
+  hitbox du joueur reste sa hitbox normale de joueur, seul l'aspect visuel change.
 
 
 ## Simplifications assumées / points à tester en jeu

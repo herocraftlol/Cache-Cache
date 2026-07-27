@@ -24,6 +24,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.util.Vector;
 
+import java.util.Map;
 import java.util.UUID;
 
 public class PlayerListener implements Listener {
@@ -33,6 +34,8 @@ public class PlayerListener implements Listener {
     public PlayerListener(CacheCachePlugin plugin) {
         this.plugin = plugin;
     }
+
+    private final Map<UUID, Long> lastArenaWarning = new java.util.HashMap<>();
 
     private GameSession sessionOf(Player p) {
         for (GameSession s : plugin.getGameManager().getAllSessions()) {
@@ -249,27 +252,36 @@ public class PlayerListener implements Listener {
             return;
         }
 
-        // Spectateurs (morts ou observateurs) : libres de voler dans toute la zone de jeu
+        // Spectateurs (cachés éliminés, Seekers en virus déjà gérés à part, ou observateurs) :
+        // confinés strictement à la zone de l'arène, renvoyés au centre s'ils atteignent le bord.
         if (!session.isSpectator(p.getUniqueId())) return;
 
         GameMap map = session.getMap();
         if (map.getPos1() == null || map.getPos2() == null) return;
         if (to.getWorld() == null || !to.getWorld().equals(map.getPos1().getWorld())) return;
 
-        int minX = Math.min(map.getPos1().getBlockX(), map.getPos2().getBlockX()) - 10;
-        int maxX = Math.max(map.getPos1().getBlockX(), map.getPos2().getBlockX()) + 10;
-        int minZ = Math.min(map.getPos1().getBlockZ(), map.getPos2().getBlockZ()) - 10;
-        int maxZ = Math.max(map.getPos1().getBlockZ(), map.getPos2().getBlockZ()) + 10;
-        int minY = Math.min(map.getPos1().getBlockY(), map.getPos2().getBlockY()) - 20;
-        int maxY = Math.max(map.getPos1().getBlockY(), map.getPos2().getBlockY()) + 60;
+        int minX = Math.min(map.getPos1().getBlockX(), map.getPos2().getBlockX());
+        int maxX = Math.max(map.getPos1().getBlockX(), map.getPos2().getBlockX());
+        int minZ = Math.min(map.getPos1().getBlockZ(), map.getPos2().getBlockZ());
+        int maxZ = Math.max(map.getPos1().getBlockZ(), map.getPos2().getBlockZ());
+        int minY = Math.min(map.getPos1().getBlockY(), map.getPos2().getBlockY()) - 5;
+        int maxY = Math.max(map.getPos1().getBlockY(), map.getPos2().getBlockY()) + 40;
 
-        if (to.getBlockX() < minX || to.getBlockX() > maxX
-                || to.getBlockZ() < minZ || to.getBlockZ() > maxZ
+        if (to.getBlockX() <= minX || to.getBlockX() >= maxX
+                || to.getBlockZ() <= minZ || to.getBlockZ() >= maxZ
                 || to.getBlockY() < minY || to.getBlockY() > maxY) {
-            Location clamped = e.getFrom().clone();
-            clamped.setPitch(to.getPitch());
-            clamped.setYaw(to.getYaw());
-            e.setTo(clamped);
+            Location center = plugin.getGameManager().getArenaCenter(map);
+            if (center != null) {
+                center.setPitch(to.getPitch());
+                center.setYaw(to.getYaw());
+                p.teleport(center);
+                long now = System.currentTimeMillis();
+                if (now - lastArenaWarning.getOrDefault(p.getUniqueId(), 0L) > 3000L) {
+                    lastArenaWarning.put(p.getUniqueId(), now);
+                    p.sendMessage(Msg.of("§cVous ne pouvez pas quitter l'arène en spectateur."));
+                }
+            }
+
         }
     }
 

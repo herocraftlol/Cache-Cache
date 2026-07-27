@@ -59,7 +59,8 @@ public class GameManager {
 
     public void joinAsSpectator(Player p, GameSession session) {
         session.getSpectators().add(p.getUniqueId());
-        p.teleport(session.getMap().getPos1() != null ? session.getMap().getPos1() : p.getLocation());
+        Location center = getArenaCenter(session.getMap());
+        p.teleport(center != null ? center : p.getLocation());
         p.setGameMode(org.bukkit.GameMode.SPECTATOR);
         session.getScoreboardHandler().assignSpectator(p);
         p.sendMessage(Msg.of("§7Vous observez la partie en cours."));
@@ -94,6 +95,20 @@ public class GameManager {
     }
 
     public Collection<GameSession> getAllSessions() { return sessions.values(); }
+
+    /**
+     * Calcule le centre de l'arène (utilisé pour rapatrier les spectateurs qui essaient
+     * d'en sortir).
+     */
+    public Location getArenaCenter(GameMap map) {
+        Location p1 = map.getPos1();
+        Location p2 = map.getPos2();
+        if (p1 == null || p2 == null) return null;
+        double x = (p1.getBlockX() + p2.getBlockX()) / 2.0 + 0.5;
+        double z = (p1.getBlockZ() + p2.getBlockZ()) / 2.0 + 0.5;
+        double y = (p1.getY() + p2.getY()) / 2.0;
+        return new Location(p1.getWorld(), x, y, z);
+    }
 
     /**
      * Construit une plateforme de blocs invisibles (BARRIER) de 8x8, centrée sur le point

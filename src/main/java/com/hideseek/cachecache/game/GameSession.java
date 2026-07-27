@@ -513,6 +513,7 @@ public class GameSession {
             p.setGameMode(GameMode.SPECTATOR);
             plugin.getDisguiseManager().undisguise(p);
             p.setCollidable(true);
+            spectators.add(p.getUniqueId()); // pour être confinés à l'arène pendant l'écran de fin
         }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getGameManager().resetSession(this), 200L);
