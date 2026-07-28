@@ -7,12 +7,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.*;
 
+import java.util.UUID;
+
 /**
- * Un seul scoreboard (en réalité deux gabarits : caché / Seeker) est créé UNE FOIS par
- * arène et réutilisé pour toutes les parties qui s'y dérouleront, au lieu d'en recréer un
- * nouveau par joueur à chaque tick. On ne met à jour que le texte des lignes (via des
- * Team dont on change juste le prefix), jamais les entrées elles-mêmes : pas de flicker,
- * pas de fuite de mémoire, une seule identité de scoreboard par arène.
+ * Un seul scoreboard (en réalité trois gabarits : caché / Seeker / spectateur) est créé
+ * UNE FOIS par arène et réutilisé pour toutes les parties qui s'y dérouleront, au lieu
+ * d'en recréer un nouveau par joueur à chaque tick. On ne met à jour que le texte des
+ * lignes (via des Team dont on change juste le prefix), jamais les entrées elles-mêmes :
+ * pas de flicker, pas de fuite de mémoire, une seule identité de scoreboard par arène.
  */
 public class ScoreboardHandler {
 
@@ -27,6 +29,10 @@ public class ScoreboardHandler {
     private Scoreboard seekerBoard;
     private Objective seekerObjective;
     private Team[] seekerLines;
+
+    private Scoreboard spectatorBoard;
+    private Objective spectatorObjective;
+    private Team[] spectatorLines;
 
     public ScoreboardHandler(GameSession session) {
         this.session = session;
@@ -46,6 +52,11 @@ public class ScoreboardHandler {
         seekerObjective = seekerBoard.registerNewObjective("cc_seeker", Criteria.DUMMY, Msg.of("§6§lCACHE-CACHE"));
         seekerObjective.setDisplaySlot(DisplaySlot.SIDEBAR);
         seekerLines = buildLines(seekerBoard, seekerObjective);
+
+        spectatorBoard = sm.getNewScoreboard();
+        spectatorObjective = spectatorBoard.registerNewObjective("cc_spec", Criteria.DUMMY, Msg.of("§6§lCACHE-CACHE §7(spec)"));
+        spectatorObjective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        spectatorLines = buildLines(spectatorBoard, spectatorObjective);
     }
 
     private Team[] buildLines(Scoreboard board, Objective objective) {
@@ -70,8 +81,11 @@ public class ScoreboardHandler {
         p.setScoreboard(seeker ? seekerBoard : hiddenBoard);
     }
 
+    /** Scoreboard spectateur complet : temps, cachés restants, ET infos Seeker(s). */
     public void assignSpectator(Player p) {
-        assign(p, false);
+        ensureBuilt();
+        if (spectatorBoard == null) return;
+        p.setScoreboard(spectatorBoard);
     }
 
     public void update() {
@@ -106,8 +120,6 @@ public class ScoreboardHandler {
 
         boolean infinite = session.hasScenario(Scenario.INFINITE_HITS);
         int killMax = session.getMap().getKillMax();
-        // La ligne de coups restants est personnelle : on l'affiche via le nom d'équipe du
-        // joueur lui-même quand nécessaire, sinon on garde une valeur générique.
         setLine(seekerLines, 9, infinite ? "§f∞" : "§f.../" + killMax);
 
         for (Player p : session.getAllOnlinePlayers()) {
@@ -120,6 +132,23 @@ public class ScoreboardHandler {
                 // affiche celle du dernier Seeker mis à jour dans cette boucle.
             }
         }
+
+        // Scoreboard spectateur : synthèse complète (temps, cachés, ET Seekers/coups).
+        int seekerCount = session.getSeekers().size();
+        int totalUsed = 0;
+        for (UUID id : session.getSeekers()) totalUsed += session.getKillsUsed(id);
+        int totalMax = infinite ? -1 : killMax * Math.max(1, seekerCount);
+
+        setLine(spectatorLines, 0, mapLine);
+        setLine(spectatorLines, 1, sep);
+        setLine(spectatorLines, 2, timeLabel);
+        setLine(spectatorLines, 3, timeValue);
+        setLine(spectatorLines, 4, sep);
+        setLine(spectatorLines, 5, countLabel);
+        setLine(spectatorLines, 6, countValue);
+        setLine(spectatorLines, 7, "§cSeekers: §f" + seekerCount);
+        setLine(spectatorLines, 8, "§cCoups utilisés:");
+        setLine(spectatorLines, 9, totalMax < 0 ? "§f∞" : "§f" + totalUsed + "/" + totalMax);
     }
 
     private void setLine(Team[] lines, int index, String text) {

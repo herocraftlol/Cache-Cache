@@ -20,7 +20,8 @@ import java.util.stream.Collectors;
 public class CCCommand implements CommandExecutor, TabCompleter {
 
     private final CacheCachePlugin plugin;
-    private final Set<String> reserved = Set.of("create", "delete", "list", "help", "hub", "gui", "join", "leave");
+    private final Set<String> reserved = Set.of("create", "delete", "list", "help", "hub", "gui", "join", "leave",
+            "spectate", "unspectate", "replay", "leaderboard");
 
     public CCCommand(CacheCachePlugin plugin) {
         this.plugin = plugin;
@@ -44,6 +45,10 @@ public class CCCommand implements CommandExecutor, TabCompleter {
             case "gui" -> { return handleGui(sender); }
             case "join" -> { return handleJoin(sender, args); }
             case "leave" -> { return handleLeave(sender); }
+            case "spectate" -> { return handleSpectate(sender, args); }
+            case "unspectate" -> { return handleUnspectate(sender); }
+            case "replay" -> { return handleReplay(sender); }
+            case "leaderboard" -> { return handleLeaderboard(sender, args); }
             default -> { return handleMapSubcommand(sender, args); }
         }
     }
@@ -58,6 +63,10 @@ public class CCCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Msg.of("§e/cc gui §7- Ouvrir la liste des parties"));
         s.sendMessage(Msg.of("§e/cc join <map> §7- Rejoindre une arène"));
         s.sendMessage(Msg.of("§e/cc leave §7- Quitter l'arène actuelle"));
+        s.sendMessage(Msg.of("§e/cc spectate <map> §7- Observer une arène"));
+        s.sendMessage(Msg.of("§e/cc unspectate §7- Quitter l'observation"));
+        s.sendMessage(Msg.of("§e/cc replay §7- Rejouer dans une autre arène disponible"));
+        s.sendMessage(Msg.of("§e/cc leaderboard <seeker|hider> <summon|remove> §7- Gérer les hologrammes de classement"));
         s.sendMessage(Msg.of("§e/cc hub §7- Définir le hub principal"));
         s.sendMessage(Msg.of("§e/cc <map> pos1|pos2|posconfirm §7- Définir la zone de jeu"));
         s.sendMessage(Msg.of("§e/cc <map> spawnseek §7- Définir le spawn du Seeker"));
@@ -187,6 +196,88 @@ public class CCCommand implements CommandExecutor, TabCompleter {
             }
         }
         return false;
+    }
+
+    // ------------------------------------------------------------ SPECTATE
+
+    private boolean handleSpectate(CommandSender s, String[] args) {
+        if (!(s instanceof Player p)) { s.sendMessage(Msg.of("§cCommande réservée aux joueurs.")); return true; }
+        if (args.length < 2) { s.sendMessage(Msg.of("§cUsage: /cc spectate <map>")); return true; }
+        GameMap map = plugin.getMapManager().getMap(args[1]);
+        if (map == null) { s.sendMessage(Msg.of("§cCette map n'existe pas.")); return true; }
+        if (isPlayerInAnyArena(p)) {
+            s.sendMessage(Msg.of("§cVous êtes déjà dans une arène. Utilisez /cc leave pour la quitter d'abord."));
+            return true;
+        }
+        plugin.getGameManager().spectateMap(p, map);
+        return true;
+    }
+
+    private boolean handleUnspectate(CommandSender s) {
+        if (!(s instanceof Player p)) { s.sendMessage(Msg.of("§cCommande réservée aux joueurs.")); return true; }
+        if (!isPlayerInAnyArena(p)) {
+            s.sendMessage(Msg.of("§cVous n'observez aucune arène actuellement."));
+            return true;
+        }
+        plugin.getGameManager().quitToHub(p);
+        s.sendMessage(Msg.of("§aVous avez quitté l'observation."));
+        return true;
+    }
+
+    // --------------------------------------------------------------- REPLAY
+
+    private boolean handleReplay(CommandSender s) {
+        if (!(s instanceof Player p)) { s.sendMessage(Msg.of("§cCommande réservée aux joueurs.")); return true; }
+        String currentMap = null;
+        for (var session : plugin.getGameManager().getAllSessions()) {
+            if (session.getSpectators().contains(p.getUniqueId())
+                    || session.getSeekers().contains(p.getUniqueId())
+                    || session.getAliveHidden().contains(p.getUniqueId())) {
+                currentMap = session.getMap().getName();
+                break;
+            }
+        }
+        boolean joined = plugin.getGameManager().quickJoinBest(p, currentMap);
+        if (!joined) {
+            s.sendMessage(Msg.of("§cAucune arène disponible pour le moment, direction le hub."));
+            plugin.getGameManager().quitToHub(p);
+        } else {
+            s.sendMessage(Msg.of("§aVous rejoignez une nouvelle partie !"));
+        }
+        return true;
+    }
+
+    // ---------------------------------------------------------- LEADERBOARD
+
+    private boolean handleLeaderboard(CommandSender s, String[] args) {
+        if (!(s instanceof Player p)) { s.sendMessage(Msg.of("§cCommande réservée aux joueurs.")); return true; }
+        if (!p.isOp() && !p.hasPermission("cachecache.admin")) {
+            s.sendMessage(Msg.of("§cVous n'avez pas la permission de gérer les classements."));
+            return true;
+        }
+        if (args.length < 3) {
+            s.sendMessage(Msg.of("§cUsage: /cc leaderboard <seeker|hider> <summon|remove>"));
+            return true;
+        }
+        var type = switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "seeker" -> com.hideseek.cachecache.hologram.HologramManager.BoardType.SEEKER;
+            case "hider" -> com.hideseek.cachecache.hologram.HologramManager.BoardType.HIDER;
+            default -> null;
+        };
+        if (type == null) { s.sendMessage(Msg.of("§cType invalide, utilisez seeker ou hider.")); return true; }
+
+        switch (args[2].toLowerCase(Locale.ROOT)) {
+            case "summon" -> {
+                plugin.getHologramManager().summon(type, p.getLocation());
+                s.sendMessage(Msg.of("§aClassement " + args[1] + " installé ici. Il persistera après un redémarrage."));
+            }
+            case "remove" -> {
+                plugin.getHologramManager().remove(type);
+                s.sendMessage(Msg.of("§aClassement " + args[1] + " retiré."));
+            }
+            default -> s.sendMessage(Msg.of("§cUsage: /cc leaderboard <seeker|hider> <summon|remove>"));
+        }
+        return true;
     }
 
     // -------------------------------------------------------- MAP EDIT
@@ -422,18 +513,25 @@ public class CCCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("create", "delete", "list", "help", "hub", "gui", "join", "leave"));
+            List<String> options = new ArrayList<>(List.of("create", "delete", "list", "help", "hub", "gui", "join", "leave",
+                    "spectate", "unspectate", "replay", "leaderboard"));
             options.addAll(plugin.getMapManager().getMaps().stream().map(GameMap::getName).toList());
             return filter(options, args[0]);
         }
         if (args.length == 2) {
-            if (args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("join")) {
+            if (args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("join") || args[0].equalsIgnoreCase("spectate")) {
                 return filter(plugin.getMapManager().getMaps().stream().map(GameMap::getName).toList(), args[1]);
+            }
+            if (args[0].equalsIgnoreCase("leaderboard")) {
+                return filter(List.of("seeker", "hider"), args[1]);
             }
             if (plugin.getMapManager().exists(args[0])) {
                 return filter(List.of("pos1", "pos2", "posconfirm", "spawnseek", "lobby", "time", "killmax",
                         "maxplayers", "seeker", "mob", "listmob", "hunt", "scenario", "save", "config", "rename"), args[1]);
             }
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("leaderboard")) {
+            return filter(List.of("summon", "remove"), args[2]);
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("mob")) {
             return filter(Arrays.stream(EntityType.values()).map(Enum::name).toList(), args[2]);

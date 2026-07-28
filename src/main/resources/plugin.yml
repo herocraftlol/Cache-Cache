@@ -1,5 +1,5 @@
 name: CacheCache
-version: 1.0.8
+version: 1.0.9
 main: com.hideseek.cachecache.CacheCachePlugin
 api-version: '1.21'
 authors: [Claude]

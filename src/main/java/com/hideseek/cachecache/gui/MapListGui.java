@@ -21,17 +21,20 @@ public class MapListGui {
 
     public static final String TITLE = "§8Parties Cache-Cache";
     public static final NamespacedKey KEY_MAP = new NamespacedKey("cachecache", "gui_map_name");
+    public static final NamespacedKey KEY_RANDOM_JOIN = new NamespacedKey("cachecache", "gui_random_join");
+
+    private static final int MAP_SLOTS = 45; // les 5 premières lignes ; la dernière ligne est réservée au quick-join
 
     public static Inventory build(CacheCachePlugin plugin) {
         Inventory inv = org.bukkit.Bukkit.createInventory(null, 54, Msg.of(TITLE));
 
         ItemStack filler = named(Material.GRAY_STAINED_GLASS_PANE, "§7", List.of());
-        for (int i = 0; i < 54; i++) inv.setItem(i, filler);
+        for (int i = 0; i < MAP_SLOTS; i++) inv.setItem(i, filler);
 
         int slot = 0;
         for (GameMap map : plugin.getMapManager().getMaps()) {
             if (!map.isSaved()) continue;
-            if (slot >= 54) break;
+            if (slot >= MAP_SLOTS) break;
 
             GameSession session = plugin.getGameManager().getSession(map.getName());
             GameState state = session != null ? session.getState() : GameState.LOBBY;
@@ -54,6 +57,15 @@ public class MapListGui {
             inv.setItem(slot, item);
             slot++;
         }
+
+        // Dernière ligne : étoiles du Nether pour rejoindre au hasard l'arène disponible
+        // avec le plus de joueurs en attente.
+        ItemStack randomJoin = named(Material.NETHER_STAR, "§d§lPartie rapide",
+                List.of("§7Rejoint l'arène disponible", "§7avec le plus de joueurs en attente"));
+        ItemMeta rMeta = randomJoin.getItemMeta();
+        rMeta.getPersistentDataContainer().set(KEY_RANDOM_JOIN, PersistentDataType.STRING, "1");
+        randomJoin.setItemMeta(rMeta);
+        for (int i = 45; i < 54; i++) inv.setItem(i, randomJoin);
 
         return inv;
     }
