@@ -62,8 +62,22 @@ public class GameManager {
         Location center = getArenaCenter(session.getMap());
         p.teleport(center != null ? center : p.getLocation());
         p.setGameMode(org.bukkit.GameMode.SPECTATOR);
+        p.getInventory().clear();
+        p.getInventory().setItem(4, com.hideseek.cachecache.util.ItemBuilder.barrier(
+                "§cQuitter l'observation", "unspectate_barrier"));
         session.getScoreboardHandler().assignSpectator(p);
         p.sendMessage(Msg.of("§7Vous observez la partie en cours."));
+    }
+
+    /** Point d'entrée pour /cc spectate <map> : récupère/crée la session puis observe. */
+    public boolean spectateMap(Player p, GameMap map) {
+        if (!map.isSaved()) {
+            p.sendMessage(Msg.of("§cCette map n'est pas encore prête."));
+            return false;
+        }
+        GameSession session = getOrCreateSession(map);
+        joinAsSpectator(p, session);
+        return true;
     }
 
     public void quitToHub(Player p) {
@@ -95,6 +109,44 @@ public class GameManager {
     }
 
     public Collection<GameSession> getAllSessions() { return sessions.values(); }
+
+    /**
+     * Cherche, parmi toutes les maps prêtes, celle qui n'a pas encore démarré (lobby ou
+     * compte à rebours) avec le plus de joueurs en attente. Renvoie null si aucune n'est
+     * disponible.
+     */
+    public GameMap findBestJoinableArena(String excludeMapName) {
+        GameMap best = null;
+        int bestCount = -1;
+        for (GameMap map : plugin.getMapManager().getMaps()) {
+            if (!map.isSaved()) continue;
+            if (excludeMapName != null && map.getName().equalsIgnoreCase(excludeMapName)) continue;
+            GameSession session = getSession(map.getName());
+            GameState state = session != null ? session.getState() : GameState.LOBBY;
+            if (state != GameState.LOBBY && state != GameState.COUNTDOWN) continue;
+            if (map.getMaxPlayers() > 0 && session != null && session.getLobbyPlayers().size() >= map.getMaxPlayers()) continue;
+
+            int count = session != null ? session.getLobbyPlayers().size() : 0;
+            if (count > bestCount) {
+                bestCount = count;
+                best = map;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Quitte l'arène actuelle du joueur (le cas échéant) et le fait rejoindre la meilleure
+     * arène disponible (celle avec le plus de joueurs en attente). Renvoie false si aucune
+     * arène n'est disponible.
+     */
+    public boolean quickJoinBest(Player p, String excludeMapName) {
+        GameMap best = findBestJoinableArena(excludeMapName);
+        if (best == null) return false;
+        quitToHub(p);
+        joinGame(p, best);
+        return true;
+    }
 
     /**
      * Calcule le centre de l'arène (utilisé pour rapatrier les spectateurs qui essaient

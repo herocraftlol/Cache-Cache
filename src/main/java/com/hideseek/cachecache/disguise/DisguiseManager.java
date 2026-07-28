@@ -7,6 +7,8 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
@@ -14,18 +16,18 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Déguisement 100% natif, sans aucune dépendance externe (plus besoin de LibsDisguises).
+ * Déguisement 100% natif, sans aucune dépendance externe.
  *
- * Le principe : on cache le VRAI joueur (invisible pour tout le monde via
- * {@link Player#hidePlayer}), et on fait apparaître à sa place un vrai mob "fantôme"
- * (sans IA, increvable, sans collision) qu'on téléporte sur la position du joueur à
- * chaque tick. Pour tout le monde (Seeker compris), seul ce mob est visible et
- * cliquable — le vrai joueur, lui, n'existe plus sur les clients des autres joueurs, donc
- * personne ne peut accidentellement cliquer sur "la vraie personne" au lieu du mob.
+ * Le principe : le VRAI joueur reçoit un effet d'Invisibilité permanent (invisible pour
+ * TOUT LE MONDE, y compris lui-même à la 3e personne — c'est le comportement standard de
+ * l'invisibilité sur un joueur), et un vrai mob "fantôme" (sans IA, increvable, sans
+ * collision, sans gravité) apparaît à sa place et le suit à chaque tick. Résultat : tout
+ * le monde, LE JOUEUR DÉGUISÉ Y COMPRIS, ne voit que le mob — plus personne ne voit son
+ * skin.
  *
- * Le combat se fait donc en frappant le mob fantôme : c'est au code appelant
- * (PlayerListener) de vérifier via {@link #getPlayerBehindShadow(UUID)} si le mob frappé
- * est le fantôme d'un joueur caché, pour appliquer l'élimination sur le bon joueur.
+ * Le combat se fait en frappant le mob fantôme : c'est au code appelant (PlayerListener)
+ * de vérifier via {@link #getPlayerBehindShadow(UUID)} si le mob frappé est le fantôme
+ * d'un joueur caché, pour appliquer l'élimination sur le bon joueur.
  */
 public class DisguiseManager {
 
@@ -65,7 +67,7 @@ public class DisguiseManager {
 
     /**
      * Déguise le joueur en mob : fait apparaître un vrai mob fantôme à sa place et rend le
-     * vrai joueur invisible pour tout le monde.
+     * vrai joueur invisible pour tout le monde, lui compris.
      */
     public void disguiseAsMob(Player player, EntityType type) {
         undisguise(player); // enlève un éventuel déguisement précédent (ex: mob swap)
@@ -93,16 +95,9 @@ public class DisguiseManager {
         playerToShadow.put(player.getUniqueId(), shadow.getUniqueId());
         shadowToPlayer.put(shadow.getUniqueId(), player.getUniqueId());
 
-        // Le joueur déguisé ne doit JAMAIS voir son propre mob fantôme (sinon il voit son
-        // propre corps ET le mob superposés/légèrement désynchronisés = impression de
-        // "bouger tout seul"). Il se voit juste normalement (à la 3e personne).
-        player.hideEntity(plugin, shadow);
-
-        for (Player viewer : Bukkit.getOnlinePlayers()) {
-            if (!viewer.equals(player)) {
-                viewer.hidePlayer(plugin, player);
-            }
-        }
+        // Invisibilité permanente et silencieuse : cache le vrai joueur pour tout le monde,
+        // lui compris (il ne voit donc plus son skin, seulement le mob fantôme).
+        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false, false));
     }
 
     /** Retire le déguisement : supprime le mob fantôme et rend le joueur visible à nouveau. */
@@ -113,9 +108,7 @@ public class DisguiseManager {
             Entity shadow = Bukkit.getEntity(shadowId);
             if (shadow != null) shadow.remove();
         }
-        for (Player viewer : Bukkit.getOnlinePlayers()) {
-            viewer.showPlayer(plugin, player);
-        }
+        player.removePotionEffect(PotionEffectType.INVISIBILITY);
     }
 
     /**
@@ -128,16 +121,6 @@ public class DisguiseManager {
 
     public boolean isDisguised(Player player) {
         return playerToShadow.containsKey(player.getUniqueId());
-    }
-
-    /** À appeler quand un joueur se connecte : il faut lui cacher les joueurs déjà déguisés. */
-    public void applyHiddenStateFor(Player newViewer) {
-        for (UUID playerId : playerToShadow.keySet()) {
-            Player hiddenPlayer = Bukkit.getPlayer(playerId);
-            if (hiddenPlayer != null && !hiddenPlayer.equals(newViewer)) {
-                newViewer.hidePlayer(plugin, hiddenPlayer);
-            }
-        }
     }
 
     private void syncAll() {

@@ -43,11 +43,19 @@ public class GuiListener implements Listener {
     private void handleMapListClick(InventoryClickEvent e) {
         ItemStack item = e.getCurrentItem();
         if (item == null || !item.hasItemMeta()) return;
+        Player p = (Player) e.getWhoClicked();
+
+        if (item.getItemMeta().getPersistentDataContainer().has(MapListGui.KEY_RANDOM_JOIN, PersistentDataType.STRING)) {
+            p.closeInventory();
+            boolean joined = plugin.getGameManager().quickJoinBest(p, null);
+            if (!joined) p.sendMessage(Msg.of("§cAucune arène disponible pour le moment."));
+            return;
+        }
+
         String mapName = item.getItemMeta().getPersistentDataContainer().get(MapListGui.KEY_MAP, PersistentDataType.STRING);
         if (mapName == null) return;
         GameMap map = plugin.getMapManager().getMap(mapName);
         if (map == null) return;
-        Player p = (Player) e.getWhoClicked();
         p.closeInventory();
         plugin.getGameManager().joinGame(p, map);
     }

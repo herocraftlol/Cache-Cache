@@ -120,6 +120,8 @@ public class GameSession {
         p.teleport(loc);
         p.setGameMode(GameMode.ADVENTURE);
         p.getInventory().clear();
+        p.getInventory().setItem(4, com.hideseek.cachecache.util.ItemBuilder.barrier(
+                "§cQuitter l'arène", "leave_lobby_barrier"));
         com.hideseek.cachecache.scoreboard.ScoreboardHandler.reset(p);
     }
 
@@ -166,7 +168,7 @@ public class GameSession {
             default -> {}
         }
         scoreboardTickCounter++;
-        if (scoreboardTickCounter >= 20 && (state == GameState.STARTING || state == GameState.RUNNING)) {
+        if (scoreboardTickCounter >= 20 && (state == GameState.STARTING || state == GameState.RUNNING || !spectators.isEmpty())) {
             scoreboardHandler.update();
             scoreboardTickCounter = 0;
         }
@@ -467,8 +469,8 @@ public class GameSession {
             spectators.add(victim.getUniqueId());
             victim.setGameMode(GameMode.SPECTATOR);
             victim.getInventory().clear();
-            ItemStack watch = taggedItem(Material.CLOCK, "leave_watch", "§7Clic pour rejoindre le hub");
-            victim.getInventory().setItem(0, watch);
+            victim.getInventory().setItem(4, com.hideseek.cachecache.util.ItemBuilder.barrier(
+                    "§cQuitter l'observation", "unspectate_barrier"));
             scoreboardHandler.assignSpectator(victim);
             victim.sendMessage(Msg.of("§7Vous avez été éliminé. Vous êtes maintenant spectateur."));
         }
@@ -517,6 +519,19 @@ public class GameSession {
         despawnDecoyMobs();
         broadcastAll(Msg.of(reasonMessage));
 
+        if (hiddenWin) {
+            for (UUID id : aliveHidden) {
+                Player p = Bukkit.getPlayer(id);
+                if (p != null) plugin.getStatsManager().recordHiderWin(p);
+            }
+        } else {
+            for (UUID id : seekers) {
+                Player p = Bukkit.getPlayer(id);
+                if (p != null) plugin.getStatsManager().recordSeekerWin(p);
+            }
+        }
+        plugin.getHologramManager().refreshAll();
+
         for (Player p : getAllOnlinePlayers()) {
             boolean won = hiddenWin ? !seekers.contains(p.getUniqueId()) : seekers.contains(p.getUniqueId());
             Title title = won
@@ -529,6 +544,14 @@ public class GameSession {
             plugin.getDisguiseManager().undisguise(p);
             p.setCollidable(true);
             spectators.add(p.getUniqueId()); // pour être confinés à l'arène pendant l'écran de fin
+
+            Component replay = Msg.of("§a§l▶ REJOUER")
+                    .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/cc replay"))
+                    .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(Msg.of("§7Rejoindre une autre arène disponible")));
+            Component quit = Msg.of("§c§l✖ QUITTER")
+                    .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/cc leave"))
+                    .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(Msg.of("§7Retourner au hub")));
+            p.sendMessage(Msg.of("§7Que voulez-vous faire ? ").append(replay).append(Msg.of("   ")).append(quit));
         }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getGameManager().resetSession(this), 200L);

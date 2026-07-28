@@ -17,7 +17,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -216,7 +215,7 @@ public class PlayerListener implements Listener {
         if (session == null) return;
 
         switch (tag) {
-            case "leave_watch" -> {
+            case "leave_watch", "unspectate_barrier", "leave_lobby_barrier" -> {
                 e.setCancelled(true);
                 plugin.getGameManager().quitToHub(p);
             }
@@ -351,11 +350,6 @@ public class PlayerListener implements Listener {
             }
 
         }
-    }
-
-    @EventHandler
-    public void onJoin(PlayerJoinEvent e) {
-        plugin.getDisguiseManager().applyHiddenStateFor(e.getPlayer());
     }
 
     // -------------------------------------------------------------- QUIT
