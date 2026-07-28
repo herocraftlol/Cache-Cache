@@ -82,7 +82,6 @@ public class DisguiseManager {
         if (shadow instanceof LivingEntity living) {
             living.setAI(false);
             living.setCollidable(false);
-            living.setInvulnerable(true);
             living.setSilent(true);
             living.setRemoveWhenFarAway(false);
             living.setPersistent(true);
@@ -93,6 +92,11 @@ public class DisguiseManager {
 
         playerToShadow.put(player.getUniqueId(), shadow.getUniqueId());
         shadowToPlayer.put(shadow.getUniqueId(), player.getUniqueId());
+
+        // Le joueur déguisé ne doit JAMAIS voir son propre mob fantôme (sinon il voit son
+        // propre corps ET le mob superposés/légèrement désynchronisés = impression de
+        // "bouger tout seul"). Il se voit juste normalement (à la 3e personne).
+        player.hideEntity(plugin, shadow);
 
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             if (!viewer.equals(player)) {
@@ -144,6 +148,11 @@ public class DisguiseManager {
             if (player == null || shadow == null) continue;
             Location loc = player.getLocation();
             shadow.teleport(loc);
+            // Neutralise toute vélocité/chute résiduelle que le moteur physique aurait pu
+            // appliquer au fantôme entre deux synchronisations (collision avec un bloc,
+            // hitbox différente de celle du joueur dans un passage étroit, etc.).
+            shadow.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+            shadow.setFallDistance(0f);
         }
     }
 }

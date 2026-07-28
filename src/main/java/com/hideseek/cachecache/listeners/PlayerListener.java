@@ -104,6 +104,34 @@ public class PlayerListener implements Listener {
     }
 
     /**
+     * Protège les mobs gérés par le plugin (décors de camouflage + fantômes des joueurs
+     * cachés) de toute mort "naturelle" (chute, feu, noyade, autre mob, joueur non-Seeker).
+     * Seule l'attaque du Seeker doit pouvoir les affecter, et c'est {@link #onSeekerHitsMob}
+     * qui s'en charge : ce handler laisse donc passer ce cas précis sans y toucher.
+     */
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
+    public void onManagedMobDamage(EntityDamageEvent e) {
+        if (!(e.getEntity() instanceof LivingEntity living) || e.getEntity() instanceof Player) return;
+        if (!isManagedMob(living.getUniqueId())) return;
+
+        if (e instanceof EntityDamageByEntityEvent byEntity && byEntity.getDamager() instanceof Player attacker) {
+            GameSession session = sessionOf(attacker);
+            if (session != null && session.getState() == GameState.RUNNING && session.isSeeker(attacker.getUniqueId())) {
+                return; // laissé passer, géré par onSeekerHitsMob
+            }
+        }
+        e.setCancelled(true);
+    }
+
+    private boolean isManagedMob(java.util.UUID entityId) {
+        if (plugin.getDisguiseManager().getPlayerBehindShadow(entityId) != null) return true;
+        for (GameSession s : plugin.getGameManager().getAllSessions()) {
+            if (s.isDecoyMob(entityId)) return true;
+        }
+        return false;
+    }
+
+    /**
      * Le Seeker one-shot instantanément n'importe quel mob (décor ou naturel) qu'il frappe,
      * exactement comme s'il touchait un joueur caché — puisqu'il ne peut pas savoir lequel
      * est réel. Ça consomme aussi un coup de son quota (killmax), donc s'acharner sur les

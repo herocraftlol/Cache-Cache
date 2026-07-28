@@ -334,7 +334,10 @@ public class GameSession {
                     living.setCollidable(false); // évite de pousser les joueurs
                     living.setRemoveWhenFarAway(false);
                     living.setPersistent(true);
-                    living.setInvulnerable(true); // ne meurt jamais tout seul (chute, feu, noyade...)
+                    // Pas d'invulnérabilité ici : ça empêcherait l'événement de dégât de
+                    // se déclencher du tout, donc le Seeker ne pourrait plus le taper.
+                    // La protection contre les dégâts "naturels" (chute, feu...) est gérée
+                    // par MapProtectionListener/PlayerListener via un contrôle du cas par cas.
                 }
                 decoyMobs.add(entity.getUniqueId());
             } catch (IllegalArgumentException ignored) {
@@ -542,4 +545,6 @@ public class GameSession {
     }
 
     public EntityType getDisguise(UUID uuid) { return disguises.get(uuid); }
+
+    public boolean isDecoyMob(UUID entityId) { return decoyMobs.contains(entityId); }
 }
