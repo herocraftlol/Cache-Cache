@@ -52,7 +52,7 @@ Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur 
 
 ---
 
-## ✨ Nouveautés de la version 1.0.9
+## ✨ Nouveautés de la version 1.1.0
 
 ### Améliorations du camouflage
 - **Vrais mobs sur la map** : Au lancement d'une partie, de vrais mobs apparaissent aléatoirement pour que les joueurs déguisés se fondent dans la masse
