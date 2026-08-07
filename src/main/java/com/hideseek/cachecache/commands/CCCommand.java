@@ -370,9 +370,12 @@ public class CCCommand implements CommandExecutor, TabCompleter {
     private boolean handleKillmax(CommandSender s, GameMap map, String[] args) {
         if (args.length < 3) { s.sendMessage(Msg.of("§cUsage: /cc " + map.getName() + " killmax <n>")); return true; }
         try {
-            map.setKillMax(Integer.parseInt(args[2]));
+            int value = Integer.parseInt(args[2]);
+            boolean capped = value > 10;
+            value = Math.max(1, Math.min(10, value));
+            map.setKillMax(value);
             plugin.getMapManager().save(map);
-            s.sendMessage(Msg.of("§aKillmax défini: " + map.getKillMax()));
+            s.sendMessage(Msg.of("§aKillmax défini: " + map.getKillMax() + (capped ? " §7(plafonné à 10 max)" : "")));
         } catch (NumberFormatException e) {
             s.sendMessage(Msg.of("§cValeur invalide."));
         }
@@ -433,8 +436,23 @@ public class CCCommand implements CommandExecutor, TabCompleter {
         map.rebalanceMobPercentages();
         plugin.getMapManager().save(map);
         s.sendMessage(Msg.of("§aMob §f" + type.name() + " §aajouté/mis à jour."));
+        if (WIDE_HITBOX_MOBS.contains(type)) {
+            s.sendMessage(Msg.of("§e⚠ " + type.name() + " a une hitbox plus large qu'un joueur : il peut légèrement " +
+                    "'trembler' dans les passages étroits à cause de la physique de collision avec les blocs " +
+                    "(c'est une limite du moteur du jeu, pas un bug). Pour l'éviter complètement, préfère des mobs à " +
+                    "la même largeur qu'un joueur : Zombie, Squelette, Enderman, Piglin, Noyé, Witch, Villageois..."));
+        }
         return true;
     }
+
+    /** Mobs avec une hitbox notablement plus large qu'un joueur (0.6 bloc) : plus sujets au léger
+     *  tremblement de collision avec les blocs dans les passages étroits. */
+    private static final Set<EntityType> WIDE_HITBOX_MOBS = Set.of(
+            EntityType.COW, EntityType.PIG, EntityType.SHEEP, EntityType.MOOSHROOM,
+            EntityType.HORSE, EntityType.DONKEY, EntityType.MULE, EntityType.LLAMA, EntityType.TRADER_LLAMA,
+            EntityType.POLAR_BEAR, EntityType.HOGLIN, EntityType.ZOGLIN, EntityType.RAVAGER,
+            EntityType.IRON_GOLEM, EntityType.PANDA, EntityType.GOAT
+    );
 
     private boolean handleListMob(CommandSender s, GameMap map) {
         if (map.getMobPercentages().isEmpty()) {

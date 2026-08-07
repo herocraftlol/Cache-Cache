@@ -13,11 +13,11 @@ Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur 
 - Le **Seeker** doit les retrouver et les éliminer avec un nombre limité de coups
 - Comptez sur votre sens de l'observation et votre adresse pour survivre !
 
-### Camouflage 100% natif (sans dépendances)
-- Le vrai joueur est **invisible** pour tous les autres joueurs
+### Camouflage intelligent
+- **100% natif (sans dépendances)** : Le vrai joueur est **invisible** pour tous les autres joueurs
 - Un **mob fantôme** le remplace visuellement et suit ses mouvements en temps réel
 - Les autres joueurs ne peuvent voir et interagir qu'avec ce mob fantôme
-- Les Seekers peuvent frapper les mobs de décoration ET les joueurs cachés (un coup = une élimination)
+- **Optionnel ProtocolLib** : Si installé, le camouflage utilise des paquets pour une expérience encore plus fluide (aucune collision avec les mobs)
 
 ### Leaderboards en hologramme
 - Classements **Top 10 Seekers** et **Top 10 Hiders** affichés sous forme d'hologrammes
@@ -52,26 +52,30 @@ Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur 
 
 ---
 
-## ✨ Nouveautés de la version 1.1.0
+## ✨ Nouveautés de la version 1.2.0
 
-### Améliorations du camouflage
-- **Vrais mobs sur la map** : Au lancement d'une partie, de vrais mobs apparaissent aléatoirement pour que les joueurs déguisés se fondent dans la masse
-- **Le Seeker one-shot aussi les mobs de décoration** : Frapper un mob consomme un coup du quota — s'acharner sur les décors peut faire perdre la partie !
-- **Pas de "double vision"** : Le joueur ne voit plus son propre body superposé à son mob
+### 🆕 Leaderboards en hologramme (100% natif)
+- Deux classements distincts **Top 10 Seekers** et **Top 10 Hiders**
+- Affichés sous forme d'ArmorStands empilés verticalement
+- Persistants après redémarrage (position sauvegardée dans `holograms.yml`)
+- Mis à jour automatiquement à chaque fin de partie
+- Commandes : `/cc leaderboard seeker summon/remove` et `/cc leaderboard hider summon/remove`
 
-### Optimisations performance
-- **Scoreboards persistants par arène** : Plus de recréation à chaque tick — un scoreboard par arène, mis à jour en place
-- **Joueurs non-collisionables** : Les cachés ne peuvent plus être poussés par les mobs ou autres joueurs
+### 🆕 Mode ProtocolLib (optionnel)
+- **Détection automatique** : si ProtocolLib est installé, le camouflage passe en mode "paquets"
+- **Zéro collision** : le mob n'est plus une entité réelle, donc aucune collision physique possible
+- **Fallback automatique** : si ProtocolLib n'est pas installé, le plugin utilise le système natif
 
-### Qualité de vie
-- **Rejouer/Quitter en fin de partie** : Message cliquable pour rejoindre une autre arène ou rentrer au hub
-- **Bouton de sortie** : Item Barrière dans l'inventaire des joueurs en lobby et des spectateurs
-- **Plateforme du lobby** : Zone de 8x8 blocs invisibles pour contenir les joueurs en attente
-- **Confinement des spectators** : Spectateurs bloqués dans la zone de l'arène
+### 🆕 Améliorations de l'expérience joueur
+- **Message cliquable en fin de partie** : boutons "▶ REJOUER" et "✖ QUITTER"
+- **Bouton "Partie rapide"** : dernière ligne du GUI (/cc gui) avec étoiles du Nether
+- **Scoreboard unique par arène** : plus performant, jamais recréé
+- **Joueurs non-collisionables** : les cachés ne peuvent plus être poussés
 
-### Corrections de bugs
-- **Correction "impossible de frapper les mobs"** : Les mobs ne sont plus increvables, le Seeker peut maintenant les frapper
-- **Correction "je vois mon skin au lieu de mon mob"** : Effet d'Invisibilité permanent ajouté pour masquer le joueur
+### 🐛 Corrections de bugs
+- **"Impossible de frapper les mobs"** : corrigé ! Les mobs ne sont plus increvables
+- **"Double vision"** : le joueur ne voit plus son propre skin superposé à son mob
+- **Protection améliorée** : protection de la map contre les explosions et le cassage
 
 ---
 
@@ -112,9 +116,12 @@ Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur 
 
 ## 🔧 Installation
 
-1. Téléchargez le fichier `CacheCache.jar` depuis la page des releases
+1. Téléchargez le fichier `CacheCache-1.2.0.jar` depuis la page des releases
 2. Placez le fichier dans le dossier `plugins/` de votre serveur Paper 1.21
 3. Redémarrez le serveur
+
+### Optionnel : ProtocolLib
+Pour une expérience optimale (zéro collision avec les mobs), installez [ProtocolLib](https://www.spigotmc.org/resources/protocollib.1997/) sur votre serveur. Le plugin le détectera automatiquement.
 
 ### Compilation depuis les sources
 
@@ -147,6 +154,26 @@ Le plugin crée automatiquement les fichiers de configuration nécessaires dans 
 
 - **Cachés** : Restez mobiles, confondez-vous parmi les mobs de décoration, et attention à ne pas épuiser les coups du Seeker en massacrant les mobs autour de vous !
 - **Seeker** : Écoutez les bruits de pas, surveillez les mouvements suspects, et visez juste — chaque coup compte !
+
+---
+
+## 📜 Historique des versions
+
+### v1.2.0 (actuelle)
+- Leaderboards en hologramme (Top 10 Seekers/Hiders)
+- Support optionnel de ProtocolLib pour un camouflage sans collision
+- Message cliquable en fin de partie (Rejouer/Quitter)
+- Bouton "Partie rapide" dans le GUI
+- Multiples corrections de bugs
+
+### v1.1.0
+- Vrais mobs sur la map pour le camouflage
+- Plateforme du lobby
+- Scoreboards persistants par arène
+- Correction des bugs de frappe des mobs
+
+### v1.0.0
+- Version initiale
 
 ---
 
