@@ -25,14 +25,17 @@ public class ScoreboardHandler {
     private Scoreboard hiddenBoard;
     private Objective hiddenObjective;
     private Team[] hiddenLines;
+    private Team hiddenNoCollide;
 
     private Scoreboard seekerBoard;
     private Objective seekerObjective;
     private Team[] seekerLines;
+    private Team seekerNoCollide;
 
     private Scoreboard spectatorBoard;
     private Objective spectatorObjective;
     private Team[] spectatorLines;
+    private Team spectatorNoCollide;
 
     public ScoreboardHandler(GameSession session) {
         this.session = session;
@@ -47,16 +50,32 @@ public class ScoreboardHandler {
         hiddenObjective = hiddenBoard.registerNewObjective("cc_hidden", Criteria.DUMMY, Msg.of("§6§lCACHE-CACHE"));
         hiddenObjective.setDisplaySlot(DisplaySlot.SIDEBAR);
         hiddenLines = buildLines(hiddenBoard, hiddenObjective);
+        hiddenNoCollide = registerNoCollisionTeam(hiddenBoard);
 
         seekerBoard = sm.getNewScoreboard();
         seekerObjective = seekerBoard.registerNewObjective("cc_seeker", Criteria.DUMMY, Msg.of("§6§lCACHE-CACHE"));
         seekerObjective.setDisplaySlot(DisplaySlot.SIDEBAR);
         seekerLines = buildLines(seekerBoard, seekerObjective);
+        seekerNoCollide = registerNoCollisionTeam(seekerBoard);
 
         spectatorBoard = sm.getNewScoreboard();
         spectatorObjective = spectatorBoard.registerNewObjective("cc_spec", Criteria.DUMMY, Msg.of("§6§lCACHE-CACHE §7(spec)"));
         spectatorObjective.setDisplaySlot(DisplaySlot.SIDEBAR);
         spectatorLines = buildLines(spectatorBoard, spectatorObjective);
+        spectatorNoCollide = registerNoCollisionTeam(spectatorBoard);
+    }
+
+    /**
+     * Équipe dédiée avec la règle de collision "NEVER" : c'est le mécanisme officiel de
+     * Minecraft pour désactiver la poussée d'un JOUEUR par d'autres entités. Depuis les
+     * versions récentes (1.9+, renforcé encore en 1.21), la collision des joueurs est en
+     * grande partie gérée via cette règle d'équipe plutôt que par le simple flag
+     * Entity#setCollidable — d'où le fait que ça se comportait différemment en 1.8.
+     */
+    private Team registerNoCollisionTeam(Scoreboard board) {
+        Team team = board.registerNewTeam("nocollide");
+        team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER);
+        return team;
     }
 
     private Team[] buildLines(Scoreboard board, Objective objective) {
@@ -79,6 +98,7 @@ public class ScoreboardHandler {
         ensureBuilt();
         if (hiddenBoard == null) return;
         p.setScoreboard(seeker ? seekerBoard : hiddenBoard);
+        (seeker ? seekerNoCollide : hiddenNoCollide).addPlayer(p);
     }
 
     /** Scoreboard spectateur complet : temps, cachés restants, ET infos Seeker(s). */
@@ -86,6 +106,7 @@ public class ScoreboardHandler {
         ensureBuilt();
         if (spectatorBoard == null) return;
         p.setScoreboard(spectatorBoard);
+        spectatorNoCollide.addPlayer(p);
     }
 
     public void update() {

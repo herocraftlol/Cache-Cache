@@ -17,7 +17,7 @@ Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur 
 - **100% natif (sans dépendances)** : Le vrai joueur est **invisible** pour tous les autres joueurs
 - Un **mob fantôme** le remplace visuellement et suit ses mouvements en temps réel
 - Les autres joueurs ne peuvent voir et interagir qu'avec ce mob fantôme
-- **Optionnel ProtocolLib** : Si installé, le camouflage utilise des paquets pour une expérience encore plus fluide (aucune collision avec les mobs)
+- **Optionnel ProtocolLib** : Si installé, le camouflage utilise des **paquets purs** (aucune entité réelle côté serveur) — donc **zéro collision, zéro physique**, garanti à 100% quel que soit le mob choisi. Le combat est intercepté directement au niveau des paquets client.
 
 ### Leaderboards en hologramme
 - Classements **Top 10 Seekers** et **Top 10 Hiders** affichés sous forme d'hologrammes
@@ -29,7 +29,7 @@ Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur 
 - **Multi-Seekers** : Plusieurs Seekers peuvent jouer simultanément
 - **Hunt** : Des événements périodiques révèlent brièvement la position des Seekers
 
-### 10 Scénarios可选
+### 10 Scénarios jouables
 - **Blind** : Le Seeker a un bandeau sur les yeux
 - **Flash** : Lumière aveuglante périodique
 - **Speed** : Les cachés sont plus rapides
@@ -52,30 +52,40 @@ Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur 
 
 ---
 
-## ✨ Nouveautés de la version 1.2.0
+## ✨ Nouveautés de la version 1.3.0
 
-### 🆕 Leaderboards en hologramme (100% natif)
-- Deux classements distincts **Top 10 Seekers** et **Top 10 Hiders**
-- Affichés sous forme d'ArmorStands empilés verticalement
-- Persistants après redémarrage (position sauvegardée dans `holograms.yml`)
-- Mis à jour automatiquement à chaque fin de partie
-- Commandes : `/cc leaderboard seeker summon/remove` et `/cc leaderboard hider summon/remove`
+### 🆕 Camouflage 100% par paquets (ProtocolLib) — enfin fonctionnel !
+La grande nouveauté de cette version : le backend de camouflage par paquets ProtocolLib
+est **désormais pleinement opérationnel et compilé**. Dans les versions précédentes, le
+support ProtocolLib était annoncé mais restait inactif (classes wrapper inexistantes).
 
-### 🆕 Mode ProtocolLib (optionnel)
-- **Détection automatique** : si ProtocolLib est installé, le camouflage passe en mode "paquets"
-- **Zéro collision** : le mob n'est plus une entité réelle, donc aucune collision physique possible
-- **Fallback automatique** : si ProtocolLib n'est pas installé, le plugin utilise le système natif
+- **Détection automatique** : si ProtocolLib est installé, le plugin bascule sur le mode
+  paquets (`PacketDisguiseBackend`). Sinon, il utilise le système natif (vrai mob fantôme).
+- **Zéro collision, zéro physique** : le mob que voient les joueurs n'est **plus une vraie
+  entité** côté serveur — c'est uniquement une apparence envoyée par paquets. Il devient
+  donc **strictement impossible** que ce mob soit poussé, bloqué ou corrige dans un passage
+  étroit, quel que soit le type de mob choisi.
+- **Combat intercepté au niveau du paquet** : comme aucune vraie entité n'existe, l'attaque
+  du Seeker est interceptée directement sur le paquet `USE_ENTITY` envoyé par son client, et
+  redirigée vers la logique d'élimination.
+- **Repli automatique** : en cas d'échec d'un paquet (version de ProtocolLib différente,
+  etc.), le plugin retombe automatiquement sur le système natif pour ce joueur — il ne
+  plante jamais.
 
-### 🆕 Améliorations de l'expérience joueur
-- **Message cliquable en fin de partie** : boutons "▶ REJOUER" et "✖ QUITTER"
-- **Bouton "Partie rapide"** : dernière ligne du GUI (/cc gui) avec étoiles du Nether
-- **Scoreboard unique par arène** : plus performant, jamais recréé
-- **Joueurs non-collisionables** : les cachés ne peuvent plus être poussés
+### 🆕 Correctif définitif de la collision joueur ↔ mob (1.21)
+Sur les versions récentes de Minecraft, le flag `Entity#setCollidable(false)` ne suffisait
+plus à empêcher la poussée entre un joueur et son mob fantôme. Le plugin crée maintenant
+automatiquement une **équipe de scoreboard dédiée avec la règle de collision `NEVER`** sur
+chacun de ses scoreboards (caché / Seeker / spectateur) et y ajoute le joueur dès qu'il
+rejoint la partie. C'est le mécanisme officiel Mojang/Bukkit pour désactiver la collision
+d'un joueur — il couvre les cas que les flags bruts ne couvraient plus en 1.21.
 
-### 🐛 Corrections de bugs
-- **"Impossible de frapper les mobs"** : corrigé ! Les mobs ne sont plus increvables
-- **"Double vision"** : le joueur ne voit plus son propre skin superposé à son mob
-- **Protection améliorée** : protection de la map contre les explosions et le cassage
+### 🐛 Corrections & robustesse
+- Le code du backend ProtocolLib a été réécrit avec l'API `PacketContainer` officielle
+  (fini les classes wrapper générées inexistantes en ProtocolLib 5.x) : le projet **compile
+  désormais sans erreur** avec `mvn clean package`.
+- Chaque opération réseau est enveloppée d'un `try/catch` pour garantir qu'aucune erreur
+  ponctuelle ne fasse planter le plugin ou la partie en cours.
 
 ---
 
@@ -116,7 +126,7 @@ Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur 
 
 ## 🔧 Installation
 
-1. Téléchargez le fichier `CacheCache-1.2.0.jar` depuis la page des releases
+1. Téléchargez le fichier `CacheCache-1.3.0.jar` depuis la page des releases
 2. Placez le fichier dans le dossier `plugins/` de votre serveur Paper 1.21
 3. Redémarrez le serveur
 
@@ -159,7 +169,14 @@ Le plugin crée automatiquement les fichiers de configuration nécessaires dans 
 
 ## 📜 Historique des versions
 
-### v1.2.0 (actuelle)
+### v1.3.0 (actuelle)
+- Backend de camouflage par paquets ProtocolLib **entièrement fonctionnel et compilé**
+- Zéro collision / zéro physique quand ProtocolLib est installé
+- Combat intercepté au niveau des paquets client
+- Correctif définitif de la collision joueur ↔ mob (équipe `NEVER`) pour la 1.21
+- Repli automatique natif en cas d'échec — le plugin ne plante jamais
+
+### v1.2.0
 - Leaderboards en hologramme (Top 10 Seekers/Hiders)
 - Support optionnel de ProtocolLib pour un camouflage sans collision
 - Message cliquable en fin de partie (Rejouer/Quitter)
