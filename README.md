@@ -52,40 +52,67 @@ Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur 
 
 ---
 
-## ✨ Nouveautés de la version 1.3.0
+## ✨ Nouveautés de la version 1.4.0
 
-### 🆕 Camouflage 100% par paquets (ProtocolLib) — enfin fonctionnel !
-La grande nouveauté de cette version : le backend de camouflage par paquets ProtocolLib
-est **désormais pleinement opérationnel et compilé**. Dans les versions précédentes, le
-support ProtocolLib était annoncé mais restait inactif (classes wrapper inexistantes).
+### 🆕 Camouflage par paquets : tête du mob qui suit le regard + suppression robuste
+Cette mise à jour retravaille en profondeur le backend de camouflage par paquets
+(`PacketDisguiseBackend`) pour corriger les deux derniers défauts visuels qui persistaient
+avec ProtocolLib :
 
-- **Détection automatique** : si ProtocolLib est installé, le plugin bascule sur le mode
-  paquets (`PacketDisguiseBackend`). Sinon, il utilise le système natif (vrai mob fantôme).
-- **Zéro collision, zéro physique** : le mob que voient les joueurs n'est **plus une vraie
-  entité** côté serveur — c'est uniquement une apparence envoyée par paquets. Il devient
-  donc **strictement impossible** que ce mob soit poussé, bloqué ou corrige dans un passage
-  étroit, quel que soit le type de mob choisi.
-- **Combat intercepté au niveau du paquet** : comme aucune vraie entité n'existe, l'attaque
-  du Seeker est interceptée directement sur le paquet `USE_ENTITY` envoyé par son client, et
-  redirigée vers la logique d'élimination.
-- **Repli automatique** : en cas d'échec d'un paquet (version de ProtocolLib différente,
-  etc.), le plugin retombe automatiquement sur le système natif pour ce joueur — il ne
-  plante jamais.
-
-### 🆕 Correctif définitif de la collision joueur ↔ mob (1.21)
-Sur les versions récentes de Minecraft, le flag `Entity#setCollidable(false)` ne suffisait
-plus à empêcher la poussée entre un joueur et son mob fantôme. Le plugin crée maintenant
-automatiquement une **équipe de scoreboard dédiée avec la règle de collision `NEVER`** sur
-chacun de ses scoreboards (caché / Seeker / spectateur) et y ajoute le joueur dès qu'il
-rejoint la partie. C'est le mécanisme officiel Mojang/Bukkit pour désactiver la collision
-d'un joueur — il couvre les cas que les flags bruts ne couvraient plus en 1.21.
+- **Tête du mob qui suit enfin le regard du joueur** : le paquet de téléportation ne
+  contrôle que la position et l'orientation du **corps**. Sans un paquet dédié à la
+  rotation de la **tête**, celle-ci restait figée dans sa direction de spawn, ce qui
+  donnait un mob « cassé » qui regardait toujours dans le même sens. Le plugin envoie
+  maintenant le paquet `ENTITY_HEAD_ROTATION` à **chaque tick** de synchronisation, en plus
+  de la téléportation — la tête du mob suit désormais en temps réel celle du joueur.
+- **Suppression fiable du mob fantôme à l'élimination** : le paquet de destruction
+  (`ENTITY_DESTROY`) échouait silencieusement sur certaines versions de Minecraft, laissant
+  des mobs fantômes « figés » traîner sur l'écran des joueurs même après leur élimination.
+  L'envoi est désormais **robuste et multi-replis** : il tente successivement le champ
+  « liste d'entiers » (versions récentes) puis le champ « tableau d'entiers » (anciennes
+  versions), avec un message de log clair si jamais aucune méthode ne fonctionne sur votre
+  version de ProtocolLib. Plus aucun résidu visuel après une élimination.
 
 ### 🐛 Corrections & robustesse
-- Le code du backend ProtocolLib a été réécrit avec l'API `PacketContainer` officielle
-  (fini les classes wrapper générées inexistantes en ProtocolLib 5.x) : le projet **compile
-  désormais sans erreur** avec `mvn clean package`.
+- Le backend ProtocolLib conserve l'API `PacketContainer` officielle (compatible ProtocolLib
+  5.x) : le projet **compile sans erreur** avec `mvn clean package`.
 - Chaque opération réseau est enveloppée d'un `try/catch` pour garantir qu'aucune erreur
   ponctuelle ne fasse planter le plugin ou la partie en cours.
+- En cas d'échec d'un paquet (version de ProtocolLib différente, etc.), le plugin retombe
+  automatiquement sur le système natif pour ce joueur — il ne plante jamais.
+
+---
+
+## 📜 Historique des versions
+
+### v1.4.0 (actuelle)
+- Paquet `ENTITY_HEAD_ROTATION` ajouté : la tête du mob fantôme suit le regard du joueur
+- Suppression robuste du mob fantôme (multi-replis `ENTITY_DESTROY`) : plus de résidus figés
+- Backend ProtocolLib conservé sur l'API `PacketContainer` officielle (compile sans erreur)
+- Robustesse réseau renforcée (try/catch sur chaque paquet, repli natif automatique)
+
+### v1.3.0
+- Backend de camouflage par paquets ProtocolLib **entièrement fonctionnel et compilé**
+- Zéro collision / zéro physique quand ProtocolLib est installé
+- Combat intercepté au niveau des paquets client
+- Correctif définitif de la collision joueur ↔ mob (équipe `NEVER`) pour la 1.21
+- Repli automatique natif en cas d'échec — le plugin ne plante jamais
+
+### v1.2.0
+- Leaderboards en hologramme (Top 10 Seekers/Hiders)
+- Support optionnel de ProtocolLib pour un camouflage sans collision
+- Message cliquable en fin de partie (Rejouer/Quitter)
+- Bouton "Partie rapide" dans le GUI
+- Multiples corrections de bugs
+
+### v1.1.0
+- Vrais mobs sur la map pour le camouflage
+- Plateforme du lobby
+- Scoreboards persistants par arène
+- Correction des bugs de frappe des mobs
+
+### v1.0.0
+- Version initiale
 
 ---
 
@@ -126,7 +153,7 @@ d'un joueur — il couvre les cas que les flags bruts ne couvraient plus en 1.21
 
 ## 🔧 Installation
 
-1. Téléchargez le fichier `CacheCache-1.3.0.jar` depuis la page des releases
+1. Téléchargez le fichier `CacheCache-1.4.0.jar` depuis la page des releases
 2. Placez le fichier dans le dossier `plugins/` de votre serveur Paper 1.21
 3. Redémarrez le serveur
 
@@ -164,33 +191,6 @@ Le plugin crée automatiquement les fichiers de configuration nécessaires dans 
 
 - **Cachés** : Restez mobiles, confondez-vous parmi les mobs de décoration, et attention à ne pas épuiser les coups du Seeker en massacrant les mobs autour de vous !
 - **Seeker** : Écoutez les bruits de pas, surveillez les mouvements suspects, et visez juste — chaque coup compte !
-
----
-
-## 📜 Historique des versions
-
-### v1.3.0 (actuelle)
-- Backend de camouflage par paquets ProtocolLib **entièrement fonctionnel et compilé**
-- Zéro collision / zéro physique quand ProtocolLib est installé
-- Combat intercepté au niveau des paquets client
-- Correctif définitif de la collision joueur ↔ mob (équipe `NEVER`) pour la 1.21
-- Repli automatique natif en cas d'échec — le plugin ne plante jamais
-
-### v1.2.0
-- Leaderboards en hologramme (Top 10 Seekers/Hiders)
-- Support optionnel de ProtocolLib pour un camouflage sans collision
-- Message cliquable en fin de partie (Rejouer/Quitter)
-- Bouton "Partie rapide" dans le GUI
-- Multiples corrections de bugs
-
-### v1.1.0
-- Vrais mobs sur la map pour le camouflage
-- Plateforme du lobby
-- Scoreboards persistants par arène
-- Correction des bugs de frappe des mobs
-
-### v1.0.0
-- Version initiale
 
 ---
 

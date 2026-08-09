@@ -105,15 +105,38 @@ public class PacketDisguiseBackend {
         fakeEntityUuids.remove(player.getUniqueId());
         if (fakeId == null) return;
         fakeIdToPlayer.remove(fakeId);
+        sendDestroy(fakeId);
+    }
 
+    /**
+     * Envoie le paquet de suppression de l'entité fictive. Le champ exact de ce paquet a
+     * changé de type selon les versions de Minecraft/ProtocolLib (tableau d'entiers puis
+     * liste d'entiers) : on tente plusieurs méthodes dans l'ordre jusqu'à ce que l'une
+     * fonctionne, pour rester robuste face à cette variation.
+     */
+    private void sendDestroy(int fakeId) {
+        // Tentative 1 : paquet brut, champ "liste d'entiers" (versions récentes de Minecraft).
         try {
-            PacketContainer destroy = protocolManager.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
-            destroy.getIntegerArrays().write(0, new int[]{fakeId});
+            PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
+            packet.getIntLists().write(0, java.util.List.of(fakeId));
             for (Player viewer : Bukkit.getOnlinePlayers()) {
-                protocolManager.sendServerPacket(viewer, destroy, false);
+                protocolManager.sendServerPacket(viewer, packet, false);
+            }
+            return;
+        } catch (Throwable ignored) {
+            // On retente avec un tableau d'entiers ci-dessous.
+        }
+
+        // Tentative 2 : paquet brut, champ "tableau d'entiers" (anciennes versions).
+        try {
+            PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
+            packet.getIntegerArrays().write(0, new int[]{fakeId});
+            for (Player viewer : Bukkit.getOnlinePlayers()) {
+                protocolManager.sendServerPacket(viewer, packet, false);
             }
         } catch (Throwable t) {
-            plugin.getLogger().warning("Échec de la suppression de l'entité fictive via ProtocolLib : " + t.getMessage());
+            plugin.getLogger().warning("Échec de la suppression de l'entité fictive (toutes les méthodes ont échoué) : "
+                    + t.getMessage() + ". L'entité fantôme risque de rester visible ; contacte-moi avec cette erreur.");
         }
     }
 
@@ -144,6 +167,21 @@ public class PacketDisguiseBackend {
                 }
             } catch (Throwable ignored) {
                 // Si un paquet échoue ponctuellement, on retentera au tick suivant.
+            }
+
+            // Le paquet de téléportation ne contrôle que le corps : sans ce paquet dédié,
+            // la tête du mob reste figée dans sa direction d'origine et ne suit jamais le
+            // regard du joueur.
+            try {
+                PacketContainer headRotation = protocolManager.createPacket(PacketType.Play.Server.ENTITY_HEAD_ROTATION);
+                headRotation.getIntegers().write(0, fakeId);
+                headRotation.getBytes().writeSafely(0, (byte) (loc.getYaw() * 256.0F / 360.0F));
+
+                for (Player viewer : Bukkit.getOnlinePlayers()) {
+                    protocolManager.sendServerPacket(viewer, headRotation, false);
+                }
+            } catch (Throwable ignored) {
+                // Idem, on retentera au tick suivant.
             }
         }
     }
