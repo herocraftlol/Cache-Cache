@@ -71,7 +71,7 @@ public class CCCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Msg.of("§e/cc <map> pos1|pos2|posconfirm §7- Définir la zone de jeu"));
         s.sendMessage(Msg.of("§e/cc <map> spawnseek §7- Définir le spawn du Seeker"));
         s.sendMessage(Msg.of("§e/cc <map> lobby §7- Définir le lobby d'attente"));
-        s.sendMessage(Msg.of("§e/cc <map> time <ticks> §7- Durée de la partie"));
+        s.sendMessage(Msg.of("§e/cc <map> time <base_ticks> [par_joueur] §7- Durée (défaut: 5min, +1min/joueur)"));
         s.sendMessage(Msg.of("§e/cc <map> killmax <base> [par_caché] §7- Coups du Seeker (défaut: 10, +5/caché)"));
         s.sendMessage(Msg.of("§e/cc <map> maxplayers <n> §7- Joueurs max"));
         s.sendMessage(Msg.of("§e/cc <map> seeker <n> §7- Nombre de Seekers"));
@@ -349,12 +349,22 @@ public class CCCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleTime(CommandSender s, GameMap map, String[] args) {
-        if (args.length < 3) { s.sendMessage(Msg.of("§cUsage: /cc " + map.getName() + " time <ticks>")); return true; }
+        if (args.length < 3) {
+            s.sendMessage(Msg.of("§cUsage: /cc " + map.getName() + " time <base_ticks> [par_joueur_ticks]"));
+            s.sendMessage(Msg.of("§7Actuel: §fbase=" + map.getTimeBaseTicks() + " (~" + formatTicks(map.getTimeBaseTicks()) +
+                    "), par joueur=" + map.getTimePerPlayerTicks() + " (~" + formatTicks(map.getTimePerPlayerTicks()) + ")"));
+            return true;
+        }
         try {
-            int ticks = Integer.parseInt(args[2]);
-            map.setTimeTicks(ticks);
+            int base = Math.max(1, Integer.parseInt(args[2]));
+            map.setTimeBaseTicks(base);
+            if (args.length >= 4) {
+                int perPlayer = Math.max(0, Integer.parseInt(args[3]));
+                map.setTimePerPlayerTicks(perPlayer);
+            }
             plugin.getMapManager().save(map);
-            s.sendMessage(Msg.of("§aDurée définie: " + ticks + " ticks (~" + formatTicks(ticks) + ")"));
+            s.sendMessage(Msg.of("§aDurée définie: §f" + formatTicks(map.getTimeBaseTicks()) + " §7de base, +§f" +
+                    formatTicks(map.getTimePerPlayerTicks()) + " §7par joueur supplémentaire."));
         } catch (NumberFormatException e) {
             s.sendMessage(Msg.of("§cValeur invalide."));
         }
@@ -502,9 +512,9 @@ public class CCCommand implements CommandExecutor, TabCompleter {
         if (args.length < 3) { s.sendMessage(Msg.of("§cUsage: /cc " + map.getName() + " hunt <tick> [nombre]")); return true; }
         try {
             int tick = Integer.parseInt(args[2]);
-            if (map.getTimeTicks() > 0 && tick > map.getTimeTicks()) {
-                s.sendMessage(Msg.of("§cCe déclenchement dépasse la durée totale de la partie."));
-                return true;
+            if (tick > map.getTimeBaseTicks()) {
+                s.sendMessage(Msg.of("§e⚠ Ce déclenchement dépasse la durée de base (" + formatTicks(map.getTimeBaseTicks()) +
+                        ") : il ne se déclenchera que sur les parties à plusieurs joueurs, où la durée réelle est plus longue."));
             }
             int count = args.length >= 4 ? Integer.parseInt(args[3]) : 1;
             map.getHunts().add(new GameMap.HuntEntry(tick, count));

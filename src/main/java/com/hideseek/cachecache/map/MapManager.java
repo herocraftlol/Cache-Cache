@@ -116,7 +116,8 @@ public class MapManager {
         map.setSpawnSeeker(LocationUtil.load(cfg, "spawnSeeker"));
         map.setLobby(LocationUtil.load(cfg, "lobby"));
 
-        map.setTimeTicks(cfg.getInt("timeTicks", -1));
+        map.setTimeBaseTicks(cfg.getInt("timeBaseTicks", 6000));
+        map.setTimePerPlayerTicks(cfg.getInt("timePerPlayerTicks", 1200));
         map.setKillMaxBase(cfg.getInt("killMaxBase", 10));
         map.setKillMaxPerHider(cfg.getInt("killMaxPerHider", 5));
         map.setMaxPlayers(cfg.getInt("maxPlayers", -1));
@@ -161,7 +162,8 @@ public class MapManager {
         LocationUtil.save(cfg, "spawnSeeker", map.getSpawnSeeker());
         LocationUtil.save(cfg, "lobby", map.getLobby());
 
-        cfg.set("timeTicks", map.getTimeTicks());
+        cfg.set("timeBaseTicks", map.getTimeBaseTicks());
+        cfg.set("timePerPlayerTicks", map.getTimePerPlayerTicks());
         cfg.set("killMaxBase", map.getKillMaxBase());
         cfg.set("killMaxPerHider", map.getKillMaxPerHider());
         cfg.set("maxPlayers", map.getMaxPlayers());

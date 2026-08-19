@@ -246,7 +246,7 @@ public class GameSession {
         // Charge de vent : changement de mob unique à un moment aléatoire
         if (hasScenario(Scenario.MOB_SWAP) && !mobSwapDone) {
             if (mobSwapTriggerTick < 0) {
-                int totalTime = map.getTimeTicks() > 0 ? map.getTimeTicks() : 12000;
+                int totalTime = ticksLeft > 0 ? ticksLeft : 12000;
                 mobSwapTriggerTick = 20 + random.nextInt(Math.max(1, totalTime - 40));
             }
             if (elapsedTicks >= mobSwapTriggerTick) {
@@ -264,7 +264,7 @@ public class GameSession {
         state = GameState.STARTING;
         startingTicksLeft = 300;
         elapsedTicks = 0;
-        ticksLeft = map.getTimeTicks();
+        ticksLeft = map.computeTimeTicks(lobbyPlayers.size());
         timeIndefinite = false;
         mobSwapDone = false;
         mobSwapTriggerTick = -1;
@@ -327,7 +327,10 @@ public class GameSession {
         List<EntityType> pool = buildWeightedMobPool();
         if (pool.isEmpty()) return;
 
-        int decoyCount = Math.max(map.getDecoyBase(), aliveHidden.size() * map.getDecoyPerHider());
+        // Le nombre de décors augmente avec le nombre de cachés (pour garder une densité
+        // suffisante de camouflage) ET avec le killmax du Seeker (plus il a de coups
+        // disponibles, plus il doit avoir de "faux positifs" à trier pour compenser).
+        int decoyCount = Math.max(map.getDecoyBase(), aliveHidden.size() * map.getDecoyPerHider()) + computedKillMax;
         for (int i = 0; i < decoyCount; i++) {
             Location loc = plugin.getGameManager().findRandomGroundLocation(map);
             if (loc == null) continue;

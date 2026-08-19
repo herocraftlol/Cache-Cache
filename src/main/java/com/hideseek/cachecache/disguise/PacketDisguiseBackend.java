@@ -132,7 +132,7 @@ public class PacketDisguiseBackend {
             PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
             packet.getIntegerArrays().write(0, new int[]{fakeId});
             for (Player viewer : Bukkit.getOnlinePlayers()) {
-                protocolManager.sendServerPacket(viewer, packet, false);
+                protocolManager.sendServerPacket(viewer, packet);
             }
         } catch (Throwable t) {
             plugin.getLogger().warning("Échec de la suppression de l'entité fictive (toutes les méthodes ont échoué) : "

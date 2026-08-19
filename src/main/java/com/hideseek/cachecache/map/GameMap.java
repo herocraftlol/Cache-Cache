@@ -27,7 +27,8 @@ public class GameMap {
     private Location spawnSeeker;
     private Location lobby;
 
-    private int timeTicks = -1; // -1 = non défini
+    private int timeBaseTicks = 6000;      // 5 min par défaut
+    private int timePerPlayerTicks = 1200; // +1 min par joueur supplémentaire
     private int killMaxBase = 10;      // coups de base pour le/les Seeker(s)
     private int killMaxPerHider = 5;   // coups supplémentaires par caché au-delà du premier
     private int maxPlayers = -1;
@@ -67,8 +68,20 @@ public class GameMap {
     public Location getLobby() { return lobby; }
     public void setLobby(Location lobby) { this.lobby = lobby; }
 
-    public int getTimeTicks() { return timeTicks; }
-    public void setTimeTicks(int timeTicks) { this.timeTicks = timeTicks; }
+    public int getTimeBaseTicks() { return timeBaseTicks; }
+    public void setTimeBaseTicks(int timeBaseTicks) { this.timeBaseTicks = timeBaseTicks; }
+
+    public int getTimePerPlayerTicks() { return timePerPlayerTicks; }
+    public void setTimePerPlayerTicks(int timePerPlayerTicks) { this.timePerPlayerTicks = timePerPlayerTicks; }
+
+    /**
+     * Calcule la durée de la partie (en ticks) pour un nombre de joueurs donné : la base,
+     * plus un bonus par joueur au-delà du premier (ex: base=5min, +1min/joueur -> 4 joueurs
+     * = 8 min).
+     */
+    public int computeTimeTicks(int playerCount) {
+        return timeBaseTicks + timePerPlayerTicks * Math.max(0, playerCount - 1);
+    }
 
     public int getKillMaxBase() { return killMaxBase; }
     public void setKillMaxBase(int killMaxBase) { this.killMaxBase = killMaxBase; }
@@ -125,7 +138,6 @@ public class GameMap {
         if (pos1 != null && pos2 != null && !posConfirmed) missing.add("posconfirm");
         if (spawnSeeker == null) missing.add("spawnseek");
         if (lobby == null) missing.add("lobby");
-        if (timeTicks <= 0) missing.add("time");
         if (maxPlayers <= 0) missing.add("maxplayers");
         if (mobPercentages.isEmpty()) missing.add("au moins un mob (mob <mob> [%])");
         return missing;

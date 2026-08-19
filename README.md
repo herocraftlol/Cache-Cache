@@ -6,40 +6,45 @@ avant la fin du temps !
 
 ---
 
-## ✨ Nouveautés de la version 1.5.0
+## ✨ Nouveautés de la version 1.6.0
 
-### 🎯 Équilibrage automatique des parties
+### ⏱️ Durée de partie dynamique
 
-- **Coups du Seeker proportionnels au nombre de cachés** : le `killmax` n'est plus une
-  valeur fixe. La formule est désormais *base + bonus par caché supplémentaire*, calculée
-  au lancement de chaque partie. Avec les valeurs par défaut (10 de base, +5 par caché en
-  plus) : 1 caché = 10 coups, 2 cachés = 15, 3 cachés = 20... Le Seeker a donc toujours
-  un quota juste, quelle que soit la taille de la partie.
-  Réglable via `/cc <map> killmax <base> [par_caché]`.
-- **Mobs de décor configurables** : `/cc <map> decoys <base> [par_caché]` — par exemple
-  `/cc map decoys 15 5` garantit au moins 15 mobs de décoration sur la map, plus 5 de plus
-  par caché en jeu (soit 30 avec 6 cachés). Par défaut : base 12, +4 par caché. Les
-  parties restent lisibles quel que soit leur nombre de joueurs, et les cachés se fondent
-  mieux dans la masse.
+- **La durée s'adapte automatiquement au nombre de joueurs** : finie la durée fixe à
+  configurer à la main ! La formule est désormais *base + bonus par joueur supplémentaire*,
+  calculée au lancement de chaque partie. Avec les valeurs par défaut (5 min de base,
+  +1 min par joueur) : 1 joueur = 5 min, 2 joueurs = 6 min, 8 joueurs = 12 min...
+  Réglable via `/cc <map> time <base_ticks> [par_joueur_ticks]`.
+- **Configuration plus simple** : la durée n'étant plus un paramètre obligatoire (de
+  bonnes valeurs par défaut sont prévues), une arène devient jouable dès la zone, le lobby
+  et le spawn du Seeker définis. La checklist de configuration est plus courte !
+- **Commande `hunt` plus maligne** : prévoir un déclenchement au-delà de la durée de base
+  n'est plus bloqué — un simple avertissement rappelle qu'il ne se déclenchera que dans
+  les parties allongées par le bonus par joueur.
 
-### 🐛 Corrections importantes
+### 🎯 Équilibrage renforcé
 
-- **Les admins ne voient plus les joueurs cachés** : l'invisibilité seule ne masque que le
-  rendu 3D, pas le corps ni le pseudo dans la tab-list. Le plugin réintroduit `hidePlayer`
-  appliqué par **tous les joueurs en ligne** (admins/op inclus) sur chaque joueur déguisé :
-  plus personne ne les voit, et un hook de connexion garantit que les joueurs qui
-  rejoignent en cours de partie héritent bien de cet état. Fini la triche involontaire !
-- **Passage en spectateur corrigé à l'élimination** : un caché trouvé était « tué » avec
-  1000 points de dégâts, ce qui déclenchait le vrai cycle mort/respawn de Minecraft (il
-  réapparaissait en survie au milieu de la map) en concurrence avec la bascule en mode
-  spectateur. Le plugin annule désormais le dégât proprement et gère l'élimination
-  lui-même : le caché éliminé reste exactement sur place, en spectateur, sans retour au
-  spawn du monde.
-- **Backend ProtocolLib simplifié et durablement compilable** : le camouflage par paquets
-  n'utilise plus les classes wrapper optionnelles de ProtocolLib, mais des
-  `PacketContainer` bruts (l'API stable de ProtocolLib 5.x). Résultat : le projet compile
-  sans erreur, et l'envoi robuste multi-replis des paquets de suppression (liste d'entiers
-  puis tableau d'entiers) est conservé.
+- **Mobs de décor proportionnels aux coups du Seeker** : plus le Seeker a de coups
+  disponibles (killmax), plus la map regorge de faux positifs pour compenser. Les cachés
+  gardent toujours une couverture décente, et le Seeker doit trier plutôt que tout
+  balayer.
+
+---
+
+## 🗃️ Détails de la version précédente (1.5.0)
+
+### v1.5.0
+
+- **Équilibrage automatique** : coups du Seeker proportionnels aux cachés
+  (`/cc <map> killmax <base> [par_caché]`) et mobs de décor configurables
+  (`/cc <map> decoys <base> [par_caché]`, défaut 12 + 4/caché).
+- **Les admins ne voient plus les joueurs cachés** : `hidePlayer` appliqué par tous les
+  joueurs en ligne sur chaque déguisement (corps et pseudo réellement masqués), avec hook
+  de connexion pour les arrivants en cours de partie.
+- **Élimination corrigée** : le caché trouvé bascule proprement en spectateur sur place,
+  sans cycle mort/respawn sauvage de Minecraft.
+- **Backend ProtocolLib sur `PacketContainer` brut** : compilation garantie, suppression
+  robuste conservée (replis liste d'entiers / tableau d'entiers).
 
 ---
 
@@ -94,7 +99,13 @@ avant la fin du temps !
 
 ## 📜 Historique des versions
 
-### v1.5.0 (actuelle)
+### v1.6.0 (actuelle)
+- Durée de partie dynamique : base + bonus par joueur (`/cc <map> time <base> [par_joueur]`, défaut 5 min + 1 min/joueur)
+- La durée n'est plus un paramètre obligatoire : configuration d'arène plus rapide
+- Mobs de décor désormais proportionnels au killmax du Seeker
+- Commande `hunt` : avertissement (au lieu d'un blocage) si le déclenchement dépasse la durée de base
+
+### v1.5.0
 - Killmax dynamique : coups du Seeker proportionnels au nombre de cachés (`/cc <map> killmax <base> [par_caché]`)
 - Nouvelle commande `/cc <map> decoys <base> [par_caché]` pour configurer les mobs de décor
 - Correctif : les admins ne voient plus les joueurs cachés (corps ni pseudo)
@@ -139,7 +150,7 @@ avant la fin du temps !
 | `/cc <nom> posconfirm` | Confirmer la zone |
 | `/cc <nom> spawnseek` | Définir le point d'apparition du Seeker |
 | `/cc <nom> lobby` | Définir le lobby d'attente |
-| `/cc <nom> time <ticks>` | Définir la durée de la partie |
+| `/cc <nom> time <base> [par_joueur]` | Durée de la partie (défaut : 5 min, +1 min par joueur) |
 | `/cc <nom> killmax <base> [par_caché]` | Coups du Seeker (défaut : 10, +5 par caché en plus) |
 | `/cc <nom> decoys <base> [par_caché]` | Nombre de mobs de décor (défaut : 12, +4 par caché) |
 | `/cc <nom> maxplayers <n>` | Nombre maximum de joueurs |
@@ -168,7 +179,7 @@ avant la fin du temps !
 
 ## 🔧 Installation
 
-1. Téléchargez le fichier `CacheCache-1.5.0.jar` depuis la [page des releases](https://github.com/herocraftlol/Cache-Cache/releases)
+1. Téléchargez le fichier `CacheCache-1.6.0.jar` depuis la [page des releases](https://github.com/herocraftlol/Cache-Cache/releases)
 2. Placez le fichier dans le dossier `plugins/` de votre serveur Paper 1.21
 3. Redémarrez le serveur
 
