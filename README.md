@@ -1,8 +1,45 @@
 # 🦊 CacheCache — Plugin Paper 1.21
 
-Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur Minecraft Paper 1.21.
+Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur Minecraft
+Paper 1.21 : les joueurs cachés se camouflent en mobs, et le Seeker doit les retrouver
+avant la fin du temps !
 
-> *Un Seeker doit retrouver et éliminer tous les joueurs cachés avant la fin du temps !*
+---
+
+## ✨ Nouveautés de la version 1.5.0
+
+### 🎯 Équilibrage automatique des parties
+
+- **Coups du Seeker proportionnels au nombre de cachés** : le `killmax` n'est plus une
+  valeur fixe. La formule est désormais *base + bonus par caché supplémentaire*, calculée
+  au lancement de chaque partie. Avec les valeurs par défaut (10 de base, +5 par caché en
+  plus) : 1 caché = 10 coups, 2 cachés = 15, 3 cachés = 20... Le Seeker a donc toujours
+  un quota juste, quelle que soit la taille de la partie.
+  Réglable via `/cc <map> killmax <base> [par_caché]`.
+- **Mobs de décor configurables** : `/cc <map> decoys <base> [par_caché]` — par exemple
+  `/cc map decoys 15 5` garantit au moins 15 mobs de décoration sur la map, plus 5 de plus
+  par caché en jeu (soit 30 avec 6 cachés). Par défaut : base 12, +4 par caché. Les
+  parties restent lisibles quel que soit leur nombre de joueurs, et les cachés se fondent
+  mieux dans la masse.
+
+### 🐛 Corrections importantes
+
+- **Les admins ne voient plus les joueurs cachés** : l'invisibilité seule ne masque que le
+  rendu 3D, pas le corps ni le pseudo dans la tab-list. Le plugin réintroduit `hidePlayer`
+  appliqué par **tous les joueurs en ligne** (admins/op inclus) sur chaque joueur déguisé :
+  plus personne ne les voit, et un hook de connexion garantit que les joueurs qui
+  rejoignent en cours de partie héritent bien de cet état. Fini la triche involontaire !
+- **Passage en spectateur corrigé à l'élimination** : un caché trouvé était « tué » avec
+  1000 points de dégâts, ce qui déclenchait le vrai cycle mort/respawn de Minecraft (il
+  réapparaissait en survie au milieu de la map) en concurrence avec la bascule en mode
+  spectateur. Le plugin annule désormais le dégât proprement et gère l'élimination
+  lui-même : le caché éliminé reste exactement sur place, en spectateur, sans retour au
+  spawn du monde.
+- **Backend ProtocolLib simplifié et durablement compilable** : le camouflage par paquets
+  n'utilise plus les classes wrapper optionnelles de ProtocolLib, mais des
+  `PacketContainer` bruts (l'API stable de ProtocolLib 5.x). Résultat : le projet compile
+  sans erreur, et l'envoi robuste multi-replis des paquets de suppression (liste d'entiers
+  puis tableau d'entiers) est conservé.
 
 ---
 
@@ -14,10 +51,13 @@ Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur 
 - Comptez sur votre sens de l'observation et votre adresse pour survivre !
 
 ### Camouflage intelligent
-- **100% natif (sans dépendances)** : Le vrai joueur est **invisible** pour tous les autres joueurs
+- **100% natif (sans dépendances)** : le vrai joueur est **invisible** pour tous les autres joueurs
 - Un **mob fantôme** le remplace visuellement et suit ses mouvements en temps réel
 - Les autres joueurs ne peuvent voir et interagir qu'avec ce mob fantôme
-- **Optionnel ProtocolLib** : Si installé, le camouflage utilise des **paquets purs** (aucune entité réelle côté serveur) — donc **zéro collision, zéro physique**, garanti à 100% quel que soit le mob choisi. Le combat est intercepté directement au niveau des paquets client.
+- **Optionnel ProtocolLib** : s'il est installé, le camouflage utilise des **paquets purs**
+  (aucune entité réelle côté serveur) — donc **zéro collision, zéro physique**, garanti
+  quel que soit le mob choisi. Le combat est intercepté directement au niveau des paquets
+  client. Le plugin choisit automatiquement le meilleur système disponible au démarrage.
 
 ### Leaderboards en hologramme
 - Classements **Top 10 Seekers** et **Top 10 Hiders** affichés sous forme d'hologrammes
@@ -25,84 +65,58 @@ Plugin de mini-jeu **Cache-Cache** (style Prop Hunt / Hide & Seek) pour serveur 
 - Mis à jour automatiquement à chaque fin de partie
 
 ### Modes de jeu
-- **Mode Virus** : Le Seeker infecte les cachés au lieu de les tuer (ils deviennent Seekers à leur tour)
-- **Multi-Seekers** : Plusieurs Seekers peuvent jouer simultanément
-- **Hunt** : Des événements périodiques révèlent brièvement la position des Seekers
+- **Mode Virus** : le Seeker infecte les cachés au lieu de les tuer (ils deviennent Seekers à leur tour)
+- **Multi-Seekers** : plusieurs Seekers peuvent jouer simultanément
+- **Hunt** : des événements périodiques révèlent brièvement la position des Seekers
 
 ### 10 Scénarios jouables
-- **Blind** : Le Seeker a un bandeau sur les yeux
-- **Flash** : Lumière aveuglante périodique
-- **Speed** : Les cachés sont plus rapides
-- **Invisible** : Les cachés sont invisibles (même le mob)
-- **Enclume** : Des enclumes tombent périodiquement (troll, pas de dégâts)
-- **Double Jump** : Les cachés ont un double saut
-- **Compass** : Le Seeker a une boussole pointant vers le cachés le plus proche
+- **Blind** : le Seeker a un bandeau sur les yeux
+- **Flash** : lumière aveuglante périodique
+- **Speed** : les cachés sont plus rapides
+- **Invisible** : les cachés sont invisibles (même le mob)
+- **Enclume** : des enclumes tombent périodiquement (troll, pas de dégâts)
+- **Double Jump** : les cachés ont un double saut
+- **Compass** : le Seeker a une boussole pointant vers le caché le plus proche
 - Et plus encore !
 
 ### Interface graphique (GUI)
 - Liste des arènes avec indication du statut (en attente, en cours, pleine)
 - Sélection des scénarios pour chaque map via GUI
 - Menu de configuration intuitif
-- Bouton "Partie rapide" pour rejoindre la partie avec le plus de joueurs
+- Bouton « Partie rapide » pour rejoindre la partie avec le plus de joueurs
 
-### Interface spectator
+### Interface spectateur
 - `/cc spectate <map>` pour observer n'importe quelle arène
 - `/cc unspectate` ou item Barrière pour quitter
 - Scoreboard complet pour les spectateurs (temps restant, cachés restants, etc.)
 
 ---
 
-## ✨ Nouveautés de la version 1.4.0
-
-### 🆕 Camouflage par paquets : tête du mob qui suit le regard + suppression robuste
-Cette mise à jour retravaille en profondeur le backend de camouflage par paquets
-(`PacketDisguiseBackend`) pour corriger les deux derniers défauts visuels qui persistaient
-avec ProtocolLib :
-
-- **Tête du mob qui suit enfin le regard du joueur** : le paquet de téléportation ne
-  contrôle que la position et l'orientation du **corps**. Sans un paquet dédié à la
-  rotation de la **tête**, celle-ci restait figée dans sa direction de spawn, ce qui
-  donnait un mob « cassé » qui regardait toujours dans le même sens. Le plugin envoie
-  maintenant le paquet `ENTITY_HEAD_ROTATION` à **chaque tick** de synchronisation, en plus
-  de la téléportation — la tête du mob suit désormais en temps réel celle du joueur.
-- **Suppression fiable du mob fantôme à l'élimination** : le paquet de destruction
-  (`ENTITY_DESTROY`) échouait silencieusement sur certaines versions de Minecraft, laissant
-  des mobs fantômes « figés » traîner sur l'écran des joueurs même après leur élimination.
-  L'envoi est désormais **robuste et multi-replis** : il tente successivement le champ
-  « liste d'entiers » (versions récentes) puis le champ « tableau d'entiers » (anciennes
-  versions), avec un message de log clair si jamais aucune méthode ne fonctionne sur votre
-  version de ProtocolLib. Plus aucun résidu visuel après une élimination.
-
-### 🐛 Corrections & robustesse
-- Le backend ProtocolLib conserve l'API `PacketContainer` officielle (compatible ProtocolLib
-  5.x) : le projet **compile sans erreur** avec `mvn clean package`.
-- Chaque opération réseau est enveloppée d'un `try/catch` pour garantir qu'aucune erreur
-  ponctuelle ne fasse planter le plugin ou la partie en cours.
-- En cas d'échec d'un paquet (version de ProtocolLib différente, etc.), le plugin retombe
-  automatiquement sur le système natif pour ce joueur — il ne plante jamais.
-
----
-
 ## 📜 Historique des versions
 
-### v1.4.0 (actuelle)
-- Paquet `ENTITY_HEAD_ROTATION` ajouté : la tête du mob fantôme suit le regard du joueur
+### v1.5.0 (actuelle)
+- Killmax dynamique : coups du Seeker proportionnels au nombre de cachés (`/cc <map> killmax <base> [par_caché]`)
+- Nouvelle commande `/cc <map> decoys <base> [par_caché]` pour configurer les mobs de décor
+- Correctif : les admins ne voient plus les joueurs cachés (corps ni pseudo)
+- Correctif : un caché éliminé devient spectateur sur place au lieu de réapparaître en survie
+- Backend ProtocolLib sur `PacketContainer` brut : compilation garantie, suppression robuste conservée
+
+### v1.4.0
+- Paquet `ENTITY_HEAD_ROTATION` : la tête du mob fantôme suit le regard du joueur
 - Suppression robuste du mob fantôme (multi-replis `ENTITY_DESTROY`) : plus de résidus figés
-- Backend ProtocolLib conservé sur l'API `PacketContainer` officielle (compile sans erreur)
 - Robustesse réseau renforcée (try/catch sur chaque paquet, repli natif automatique)
 
 ### v1.3.0
-- Backend de camouflage par paquets ProtocolLib **entièrement fonctionnel et compilé**
+- Backend de camouflage par paquets ProtocolLib entièrement fonctionnel
 - Zéro collision / zéro physique quand ProtocolLib est installé
 - Combat intercepté au niveau des paquets client
-- Correctif définitif de la collision joueur ↔ mob (équipe `NEVER`) pour la 1.21
-- Repli automatique natif en cas d'échec — le plugin ne plante jamais
+- Correctif de la collision joueur ↔ mob (équipe `NEVER`) pour la 1.21
 
 ### v1.2.0
 - Leaderboards en hologramme (Top 10 Seekers/Hiders)
 - Support optionnel de ProtocolLib pour un camouflage sans collision
 - Message cliquable en fin de partie (Rejouer/Quitter)
-- Bouton "Partie rapide" dans le GUI
+- Bouton « Partie rapide » dans le GUI
 - Multiples corrections de bugs
 
 ### v1.1.0
@@ -126,7 +140,8 @@ avec ProtocolLib :
 | `/cc <nom> spawnseek` | Définir le point d'apparition du Seeker |
 | `/cc <nom> lobby` | Définir le lobby d'attente |
 | `/cc <nom> time <ticks>` | Définir la durée de la partie |
-| `/cc <nom> killmax <n>` | Nombre de coups du Seeker |
+| `/cc <nom> killmax <base> [par_caché]` | Coups du Seeker (défaut : 10, +5 par caché en plus) |
+| `/cc <nom> decoys <base> [par_caché]` | Nombre de mobs de décor (défaut : 12, +4 par caché) |
 | `/cc <nom> maxplayers <n>` | Nombre maximum de joueurs |
 | `/cc <nom> mob <type> [%]` | Ajouter un type de mob |
 | `/cc <nom> listmob` | Lister les mobs configurés |
@@ -143,7 +158,7 @@ avec ProtocolLib :
 | `/cc join <nom>` | Rejoindre une arène |
 | `/cc leave` | Quitter l'arène actuelle |
 | `/cc spectate <map>` | Observer une arène |
-| `/cc unspectate` | Quitter le mode spectator |
+| `/cc unspectate` | Quitter le mode spectateur |
 | `/cc hub` | Définir le hub principal |
 | `/cc leaderboard seeker summon/remove` | Afficher/retirer le classement Seekers |
 | `/cc leaderboard hider summon/remove` | Afficher/retirer le classement Hiders |
@@ -153,12 +168,12 @@ avec ProtocolLib :
 
 ## 🔧 Installation
 
-1. Téléchargez le fichier `CacheCache-1.4.0.jar` depuis la page des releases
+1. Téléchargez le fichier `CacheCache-1.5.0.jar` depuis la [page des releases](https://github.com/herocraftlol/Cache-Cache/releases)
 2. Placez le fichier dans le dossier `plugins/` de votre serveur Paper 1.21
 3. Redémarrez le serveur
 
 ### Optionnel : ProtocolLib
-Pour une expérience optimale (zéro collision avec les mobs), installez [ProtocolLib](https://www.spigotmc.org/resources/protocollib.1997/) sur votre serveur. Le plugin le détectera automatiquement.
+Pour une expérience optimale (zéro collision avec les mobs), installez [ProtocolLib](https://www.spigotmc.org/resources/protocollib.1997/) sur votre serveur. Le plugin le détectera automatiquement et basculera sur le camouflage par paquets.
 
 ### Compilation depuis les sources
 
@@ -180,17 +195,19 @@ Le fichier JAR sera généré dans `target/CacheCache.jar`.
 
 ## ⚙️ Configuration
 
-Le plugin crée automatiquement les fichiers de configuration nécessaires dans `plugins/CacheCache/` :
-- `maps.yml` : Configuration des arènes
-- `stats.yml` : Statistiques des joueurs (victoires)
-- `holograms.yml` : Position des leaderboards
+Le plugin crée automatiquement les fichiers nécessaires dans `plugins/CacheCache/` :
+- `maps.yml` : configuration des arènes
+- `stats.yml` : statistiques des joueurs (victoires)
+- `holograms.yml` : position des leaderboards
 
 ---
 
 ## 🎯 Tips pour les joueurs
 
-- **Cachés** : Restez mobiles, confondez-vous parmi les mobs de décoration, et attention à ne pas épuiser les coups du Seeker en massacrant les mobs autour de vous !
-- **Seeker** : Écoutez les bruits de pas, surveillez les mouvements suspects, et visez juste — chaque coup compte !
+- **Cachés** : restez mobiles, confondez-vous parmi les mobs de décoration — chaque coup
+  du Seeker dépensé sur un décor le rapproche de l'épuisement de son quota !
+- **Seeker** : écoutez les bruits de pas, surveillez les mouvements suspects, et visez
+  juste — chaque coup compte, surtout avec un quota proportionnel au nombre de cachés.
 
 ---
 

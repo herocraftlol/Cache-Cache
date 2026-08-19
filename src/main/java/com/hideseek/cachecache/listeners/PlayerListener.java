@@ -17,6 +17,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -86,11 +87,15 @@ public class PlayerListener implements Listener {
                 attacker.sendMessage(Msg.of("§cVous n'avez plus de coups disponibles !"));
                 return;
             }
-            e.setDamage(1000);
+            // IMPORTANT : on annule le dégât plutôt que d'infliger 1000 points. Laisser la
+            // mort vanilla se produire déclenche le cycle normal de mort/respawn de
+            // Minecraft (retour au spawn du monde, en survie) qui entrait en conflit avec
+            // notre passage en spectateur programmé la même seconde — d'où le bug "le
+            // joueur se retrouve en survie au milieu de la map". On gère l'élimination
+            // entièrement nous-mêmes, sans jamais laisser la vraie santé tomber à 0.
+            e.setCancelled(true);
             session.registerSeekerKill(attacker.getUniqueId());
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (session.isAliveHidden(victim.getUniqueId())) session.onHiddenEliminated(victim);
-            });
+            if (session.isAliveHidden(victim.getUniqueId())) session.onHiddenEliminated(victim);
         } else if (!attackerIsSeeker && victimIsSeeker) {
             if (session.hasScenario(Scenario.TROLL_SWORD)) {
                 e.setDamage(0);
@@ -350,6 +355,11 @@ public class PlayerListener implements Listener {
             }
 
         }
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        plugin.getDisguiseManager().applyHiddenStateFor(e.getPlayer());
     }
 
     // -------------------------------------------------------------- QUIT

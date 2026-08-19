@@ -117,9 +117,12 @@ public class MapManager {
         map.setLobby(LocationUtil.load(cfg, "lobby"));
 
         map.setTimeTicks(cfg.getInt("timeTicks", -1));
-        map.setKillMax(cfg.getInt("killMax", -1));
+        map.setKillMaxBase(cfg.getInt("killMaxBase", 10));
+        map.setKillMaxPerHider(cfg.getInt("killMaxPerHider", 5));
         map.setMaxPlayers(cfg.getInt("maxPlayers", -1));
         map.setSeekerCount(cfg.getInt("seekerCount", 1));
+        map.setDecoyBase(cfg.getInt("decoyBase", 12));
+        map.setDecoyPerHider(cfg.getInt("decoyPerHider", 4));
         map.setVirusMode(cfg.getBoolean("virusMode", false));
         map.setSaved(cfg.getBoolean("saved", false));
 
@@ -159,9 +162,12 @@ public class MapManager {
         LocationUtil.save(cfg, "lobby", map.getLobby());
 
         cfg.set("timeTicks", map.getTimeTicks());
-        cfg.set("killMax", map.getKillMax());
+        cfg.set("killMaxBase", map.getKillMaxBase());
+        cfg.set("killMaxPerHider", map.getKillMaxPerHider());
         cfg.set("maxPlayers", map.getMaxPlayers());
         cfg.set("seekerCount", map.getSeekerCount());
+        cfg.set("decoyBase", map.getDecoyBase());
+        cfg.set("decoyPerHider", map.getDecoyPerHider());
         cfg.set("virusMode", map.isVirusMode());
         cfg.set("saved", map.isSaved());
 

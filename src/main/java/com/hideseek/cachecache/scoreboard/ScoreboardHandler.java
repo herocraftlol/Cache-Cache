@@ -140,7 +140,7 @@ public class ScoreboardHandler {
         setLine(seekerLines, 8, "§cVos coups:");
 
         boolean infinite = session.hasScenario(Scenario.INFINITE_HITS);
-        int killMax = session.getMap().getKillMax();
+        int killMax = session.getComputedKillMax();
         setLine(seekerLines, 9, infinite ? "§f∞" : "§f.../" + killMax);
 
         for (Player p : session.getAllOnlinePlayers()) {

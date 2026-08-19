@@ -1,11 +1,14 @@
 package com.hideseek.cachecache.disguise;
 
 import com.hideseek.cachecache.CacheCachePlugin;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -13,9 +16,12 @@ import java.util.UUID;
  * possible) s'il est détecté sur le serveur, sinon retombe automatiquement sur le backend
  * natif (un vrai mob "fantôme", sans dépendance mais soumis à la physique des blocs).
  *
- * Dans les deux cas, le vrai joueur reçoit un effet d'Invisibilité permanent et silencieux
- * (géré ici, commun aux deux backends) : il est donc invisible pour tout le monde, lui
- * compris à la 3e personne — il ne voit plus que son mob, jamais son skin.
+ * Dans les deux cas, le vrai joueur reçoit :
+ * - un effet d'Invisibilité permanent et silencieux : il est invisible pour tout le monde,
+ *   lui compris à la 3e personne (il ne voit plus que son mob, jamais son skin) ;
+ * - un {@code hidePlayer} appliqué par chaque autre joueur en ligne, ADMINS/OP INCLUS :
+ *   contrairement à l'invisibilité seule (qui ne cache que le rendu 3D), ça le retire
+ *   aussi complètement de la tab-list (plus de pseudo visible pour personne).
  */
 public class DisguiseManager {
 
@@ -24,6 +30,8 @@ public class DisguiseManager {
 
     private NativeDisguiseBackend nativeBackend;
     private PacketDisguiseBackend packetBackend;
+
+    private final Set<UUID> hiddenPlayers = new HashSet<>();
 
     public DisguiseManager(CacheCachePlugin plugin) {
         this.plugin = plugin;
@@ -55,6 +63,11 @@ public class DisguiseManager {
     public void stop() {
         if (packetBackend != null) packetBackend.stop();
         if (nativeBackend != null) nativeBackend.stop();
+        for (UUID id : new HashSet<>(hiddenPlayers)) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) showToEveryone(p);
+        }
+        hiddenPlayers.clear();
     }
 
     public void disguiseAsMob(Player player, EntityType type) {
@@ -66,12 +79,38 @@ public class DisguiseManager {
         // Invisibilité permanente et silencieuse : cache le vrai joueur pour tout le
         // monde, lui compris (il ne voit donc plus son skin, seulement son mob).
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false, false));
+
+        // hidePlayer en plus de l'invisibilité : retire aussi le pseudo de la tab-list
+        // pour TOUT LE MONDE, admins/op inclus (l'invisibilité seule ne fait que masquer
+        // le rendu 3D, pas la tab-list).
+        hiddenPlayers.add(player.getUniqueId());
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            if (!viewer.equals(player)) viewer.hidePlayer(plugin, player);
+        }
     }
 
     public void undisguise(Player player) {
         if (packetBackend != null) packetBackend.undisguise(player);
         if (nativeBackend != null) nativeBackend.undisguise(player);
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        hiddenPlayers.remove(player.getUniqueId());
+        showToEveryone(player);
+    }
+
+    private void showToEveryone(Player player) {
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            viewer.showPlayer(plugin, player);
+        }
+    }
+
+    /** À appeler quand un joueur se connecte : il faut lui cacher les joueurs déjà déguisés. */
+    public void applyHiddenStateFor(Player newViewer) {
+        for (UUID id : hiddenPlayers) {
+            Player hidden = Bukkit.getPlayer(id);
+            if (hidden != null && !hidden.equals(newViewer)) {
+                newViewer.hidePlayer(plugin, hidden);
+            }
+        }
     }
 
     /**

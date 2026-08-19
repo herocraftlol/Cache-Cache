@@ -28,9 +28,12 @@ public class GameMap {
     private Location lobby;
 
     private int timeTicks = -1; // -1 = non défini
-    private int killMax = -1;
+    private int killMaxBase = 10;      // coups de base pour le/les Seeker(s)
+    private int killMaxPerHider = 5;   // coups supplémentaires par caché au-delà du premier
     private int maxPlayers = -1;
     private int seekerCount = 1;
+    private int decoyBase = 12;      // nombre minimum de mobs de décor sur la map
+    private int decoyPerHider = 4;   // mobs de décor supplémentaires par caché en jeu
     private boolean virusMode = false;
 
     private final Map<String, Integer> mobPercentages = new LinkedHashMap<>();
@@ -67,14 +70,31 @@ public class GameMap {
     public int getTimeTicks() { return timeTicks; }
     public void setTimeTicks(int timeTicks) { this.timeTicks = timeTicks; }
 
-    public int getKillMax() { return killMax; }
-    public void setKillMax(int killMax) { this.killMax = killMax; }
+    public int getKillMaxBase() { return killMaxBase; }
+    public void setKillMaxBase(int killMaxBase) { this.killMaxBase = killMaxBase; }
+
+    public int getKillMaxPerHider() { return killMaxPerHider; }
+    public void setKillMaxPerHider(int killMaxPerHider) { this.killMaxPerHider = killMaxPerHider; }
+
+    /**
+     * Calcule le nombre de coups du Seeker pour une partie donnée : la base, plus un
+     * bonus par caché au-delà du premier (ex: base=10, +5/caché -> 2 cachés = 15, 3 = 20).
+     */
+    public int computeKillMax(int hiderCount) {
+        return killMaxBase + killMaxPerHider * Math.max(0, hiderCount - 1);
+    }
 
     public int getMaxPlayers() { return maxPlayers; }
     public void setMaxPlayers(int maxPlayers) { this.maxPlayers = maxPlayers; }
 
     public int getSeekerCount() { return seekerCount; }
     public void setSeekerCount(int seekerCount) { this.seekerCount = seekerCount; }
+
+    public int getDecoyBase() { return decoyBase; }
+    public void setDecoyBase(int decoyBase) { this.decoyBase = decoyBase; }
+
+    public int getDecoyPerHider() { return decoyPerHider; }
+    public void setDecoyPerHider(int decoyPerHider) { this.decoyPerHider = decoyPerHider; }
 
     public boolean isVirusMode() { return virusMode; }
     public void setVirusMode(boolean virusMode) { this.virusMode = virusMode; }
@@ -106,7 +126,6 @@ public class GameMap {
         if (spawnSeeker == null) missing.add("spawnseek");
         if (lobby == null) missing.add("lobby");
         if (timeTicks <= 0) missing.add("time");
-        if (killMax <= 0) missing.add("killmax");
         if (maxPlayers <= 0) missing.add("maxplayers");
         if (mobPercentages.isEmpty()) missing.add("au moins un mob (mob <mob> [%])");
         return missing;

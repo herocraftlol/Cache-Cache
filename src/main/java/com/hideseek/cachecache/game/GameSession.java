@@ -50,6 +50,7 @@ public class GameSession {
     private int countdownSeconds = 15;
     private int startingTicksLeft = 300; // 15s à 20 tick/s
     private int ticksLeft;
+    private int computedKillMax = 10;
     private boolean timeIndefinite;
     private boolean mobSwapDone = false;
     private int mobSwapTriggerTick = -1;
@@ -285,6 +286,7 @@ public class GameSession {
             aliveHidden.add(players.get(i));
         }
         lobbyPlayers.clear();
+        computedKillMax = map.computeKillMax(aliveHidden.size());
 
         List<EntityType> mobPool = buildWeightedMobPool();
 
@@ -325,7 +327,7 @@ public class GameSession {
         List<EntityType> pool = buildWeightedMobPool();
         if (pool.isEmpty()) return;
 
-        int decoyCount = Math.max(12, aliveHidden.size() * 4);
+        int decoyCount = Math.max(map.getDecoyBase(), aliveHidden.size() * map.getDecoyPerHider());
         for (int i = 0; i < decoyCount; i++) {
             Location loc = plugin.getGameManager().findRandomGroundLocation(map);
             if (loc == null) continue;
@@ -483,8 +485,10 @@ public class GameSession {
 
     public boolean seekerHasKillsLeft(UUID seekerId) {
         if (hasScenario(Scenario.INFINITE_HITS)) return true;
-        return getKillsUsed(seekerId) < map.getKillMax();
+        return getKillsUsed(seekerId) < computedKillMax;
     }
+
+    public int getComputedKillMax() { return computedKillMax; }
 
     // ----------------------------------------------------------- COOLDOWNS
 

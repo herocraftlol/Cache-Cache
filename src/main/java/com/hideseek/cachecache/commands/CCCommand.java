@@ -72,11 +72,12 @@ public class CCCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(Msg.of("§e/cc <map> spawnseek §7- Définir le spawn du Seeker"));
         s.sendMessage(Msg.of("§e/cc <map> lobby §7- Définir le lobby d'attente"));
         s.sendMessage(Msg.of("§e/cc <map> time <ticks> §7- Durée de la partie"));
-        s.sendMessage(Msg.of("§e/cc <map> killmax <n> §7- Coups max du Seeker"));
+        s.sendMessage(Msg.of("§e/cc <map> killmax <base> [par_caché] §7- Coups du Seeker (défaut: 10, +5/caché)"));
         s.sendMessage(Msg.of("§e/cc <map> maxplayers <n> §7- Joueurs max"));
         s.sendMessage(Msg.of("§e/cc <map> seeker <n> §7- Nombre de Seekers"));
         s.sendMessage(Msg.of("§e/cc <map> seeker virus §7- Active/désactive le mode virus"));
         s.sendMessage(Msg.of("§e/cc <map> mob <type> [%] §7- Ajouter un mob à la map"));
+        s.sendMessage(Msg.of("§e/cc <map> decoys <base> [par_caché] §7- Nombre de mobs de décor"));
         s.sendMessage(Msg.of("§e/cc <map> listmob §7- Liste des mobs de la map"));
         s.sendMessage(Msg.of("§e/cc <map> hunt <tick> [nb] §7- Ajouter un déclenchement de hunt"));
         s.sendMessage(Msg.of("§e/cc <map> scenario §7- Ouvrir le GUI des scénarios"));
@@ -324,6 +325,7 @@ public class CCCommand implements CommandExecutor, TabCompleter {
             case "killmax" -> handleKillmax(s, map, args);
             case "maxplayers" -> handleMaxPlayers(s, map, args);
             case "seeker" -> handleSeeker(s, map, args);
+            case "decoys" -> handleDecoys(s, map, args);
             case "mob" -> handleMob(s, map, args);
             case "listmob" -> handleListMob(s, map);
             case "hunt" -> handleHunt(s, map, args);
@@ -368,14 +370,22 @@ public class CCCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleKillmax(CommandSender s, GameMap map, String[] args) {
-        if (args.length < 3) { s.sendMessage(Msg.of("§cUsage: /cc " + map.getName() + " killmax <n>")); return true; }
+        if (args.length < 3) {
+            s.sendMessage(Msg.of("§cUsage: /cc " + map.getName() + " killmax <base> [par_caché]"));
+            s.sendMessage(Msg.of("§7Actuel: §fbase=" + map.getKillMaxBase() + ", par caché=" + map.getKillMaxPerHider() +
+                    " §7(ex: 2 cachés -> " + map.computeKillMax(2) + " coups)"));
+            return true;
+        }
         try {
-            int value = Integer.parseInt(args[2]);
-            boolean capped = value > 10;
-            value = Math.max(1, Math.min(10, value));
-            map.setKillMax(value);
+            int base = Math.max(1, Integer.parseInt(args[2]));
+            map.setKillMaxBase(base);
+            if (args.length >= 4) {
+                int perHider = Math.max(0, Integer.parseInt(args[3]));
+                map.setKillMaxPerHider(perHider);
+            }
             plugin.getMapManager().save(map);
-            s.sendMessage(Msg.of("§aKillmax défini: " + map.getKillMax() + (capped ? " §7(plafonné à 10 max)" : "")));
+            s.sendMessage(Msg.of("§aKillmax défini: §f" + map.getKillMaxBase() + " §7de base, +§f" +
+                    map.getKillMaxPerHider() + " §7par caché supplémentaire."));
         } catch (NumberFormatException e) {
             s.sendMessage(Msg.of("§cValeur invalide."));
         }
@@ -406,6 +416,28 @@ public class CCCommand implements CommandExecutor, TabCompleter {
             map.setSeekerCount(Math.max(1, Integer.parseInt(args[2])));
             plugin.getMapManager().save(map);
             s.sendMessage(Msg.of("§aNombre de Seekers défini: " + map.getSeekerCount()));
+        } catch (NumberFormatException e) {
+            s.sendMessage(Msg.of("§cValeur invalide."));
+        }
+        return true;
+    }
+
+    private boolean handleDecoys(CommandSender s, GameMap map, String[] args) {
+        if (args.length < 3) {
+            s.sendMessage(Msg.of("§cUsage: /cc " + map.getName() + " decoys <base> [par_caché]"));
+            s.sendMessage(Msg.of("§7Actuel: §fbase=" + map.getDecoyBase() + ", par caché=" + map.getDecoyPerHider()));
+            return true;
+        }
+        try {
+            int base = Math.max(0, Integer.parseInt(args[2]));
+            map.setDecoyBase(base);
+            if (args.length >= 4) {
+                int perHider = Math.max(0, Integer.parseInt(args[3]));
+                map.setDecoyPerHider(perHider);
+            }
+            plugin.getMapManager().save(map);
+            s.sendMessage(Msg.of("§aMobs de décor définis: §fau moins " + map.getDecoyBase() +
+                    ", + " + map.getDecoyPerHider() + " par caché en jeu."));
         } catch (NumberFormatException e) {
             s.sendMessage(Msg.of("§cValeur invalide."));
         }
@@ -545,7 +577,7 @@ public class CCCommand implements CommandExecutor, TabCompleter {
             }
             if (plugin.getMapManager().exists(args[0])) {
                 return filter(List.of("pos1", "pos2", "posconfirm", "spawnseek", "lobby", "time", "killmax",
-                        "maxplayers", "seeker", "mob", "listmob", "hunt", "scenario", "save", "config", "rename"), args[1]);
+                        "maxplayers", "seeker", "mob", "listmob", "hunt", "scenario", "save", "config", "rename", "decoys"), args[1]);
             }
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("leaderboard")) {

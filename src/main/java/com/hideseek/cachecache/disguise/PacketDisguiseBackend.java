@@ -5,8 +5,8 @@ import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
-import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.events.PacketContainer;
 import com.hideseek.cachecache.CacheCachePlugin;
 import com.hideseek.cachecache.game.GameSession;
 import com.hideseek.cachecache.game.GameState;
@@ -31,11 +31,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * envoyé par le Seeker, on vérifie s'il vise l'ID fictif d'un joueur caché, et on applique
  * nous-mêmes la logique d'élimination.
  *
- * ATTENTION : ce backend dépend fortement des classes wrapper générées par ProtocolLib,
- * qui peuvent changer de signature d'une version à l'autre. Il a été écrit avec le plus
- * grand soin mais n'a pas pu être compilé/testé contre un vrai serveur dans cet
- * environnement (pas d'accès réseau au dépôt de ProtocolLib). Si tu rencontres une erreur
- * de compilation ou un comportement anormal, montre-la moi et je corrige précisément.
+ * Les paquets sont construits directement en {@link PacketContainer} (API stable de
+ * ProtocolLib 5.x), sans les classes wrapper optionnelles, pour que le projet compile
+ * quelle que soit la distribution exacte de ProtocolLib installée à la compilation. En
+ * cas d'échec d'un envoi (champs de paquet différents selon la version de Minecraft), le
+ * plugin retombe automatiquement sur le système natif : il ne plante jamais la partie.
  */
 public class PacketDisguiseBackend {
 
