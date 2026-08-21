@@ -6,45 +6,48 @@ avant la fin du temps !
 
 ---
 
-## ✨ Nouveautés de la version 1.6.0
+## ✨ Nouveautés de la version 1.7.0
 
-### ⏱️ Durée de partie dynamique
+### 🧊 Le Seeker est totalement figé pendant le compte à rebours
 
-- **La durée s'adapte automatiquement au nombre de joueurs** : finie la durée fixe à
-  configurer à la main ! La formule est désormais *base + bonus par joueur supplémentaire*,
-  calculée au lancement de chaque partie. Avec les valeurs par défaut (5 min de base,
-  +1 min par joueur) : 1 joueur = 5 min, 2 joueurs = 6 min, 8 joueurs = 12 min...
-  Réglable via `/cc <map> time <base_ticks> [par_joueur_ticks]`.
-- **Configuration plus simple** : la durée n'étant plus un paramètre obligatoire (de
-  bonnes valeurs par défaut sont prévues), une arène devient jouable dès la zone, le lobby
-  et le spawn du Seeker définis. La checklist de configuration est plus courte !
-- **Commande `hunt` plus maligne** : prévoir un déclenchement au-delà de la durée de base
-  n'est plus bloqué — un simple avertissement rappelle qu'il ne se déclenchera que dans
-  les parties allongées par le bonus par joueur.
+- `setWalkSpeed(0)` empêchait de marcher... mais **pas de sauter** (ni de dériver en
+  nageant) pendant les 15 secondes d'attente. Sa position exacte est maintenant
+  **verrouillée à chaque tick** : téléportation de correction si elle change, vélocité
+  remise à zéro, et seule l'orientation de la caméra reste libre pour observer les
+  alentours. Le Seeker est désormais vraiment immobile jusqu'au signal de départ —
+  fini les sauts pour grappiller quelques blocs d'avance !
 
-### 🎯 Équilibrage renforcé
+### 🛡️ Les mobs hostiles ne peuvent plus jamais accrocher les joueurs
 
-- **Mobs de décor proportionnels aux coups du Seeker** : plus le Seeker a de coups
-  disponibles (killmax), plus la map regorge de faux positifs pour compenser. Les cachés
-  gardent toujours une couverture décente, et le Seeker doit trier plutôt que tout
-  balayer.
+- **Filtre élargi à tous les mobs pilotés par IA** : l'ancienne protection ne couvrait
+  que l'interface `Monster`, ce qui laissait passer pas mal de mobs hostiles (Phantom,
+  Slime, MagmaCube, Guardian, Vex, Shulker...). Elle couvre maintenant
+  `org.bukkit.entity.Mob`, l'interface la plus large : **aucun mob ne peut plus cibler
+  un joueur de l'arène**, quel que soit son type.
+- **Protection active à tout moment** : elle ne s'appliquait auparavant qu'en partie
+  RUNNING. Elle protège maintenant les joueurs dès qu'ils font partie d'une arène
+  (lobby, compte à rebours, en jeu, fin de partie) — seule exception inchangée : le
+  scénario **Mobs Hostiles** laisse volontairement les mobs cibler le Seeker en jeu.
+
+### 🔧 Note technique
+
+- Le backend ProtocolLib reste sur l'approche **`PacketContainer` brut** (API stable de
+  ProtocolLib 5.x) : la compilation est garantie quelle que soit la distribution exacte
+  de ProtocolLib, avec repli automatique sur le système natif en cas de souci.
 
 ---
 
-## 🗃️ Détails de la version précédente (1.5.0)
+## 🗃️ Détails de la version précédente (1.6.0)
 
-### v1.5.0
+### v1.6.0
 
-- **Équilibrage automatique** : coups du Seeker proportionnels aux cachés
-  (`/cc <map> killmax <base> [par_caché]`) et mobs de décor configurables
-  (`/cc <map> decoys <base> [par_caché]`, défaut 12 + 4/caché).
-- **Les admins ne voient plus les joueurs cachés** : `hidePlayer` appliqué par tous les
-  joueurs en ligne sur chaque déguisement (corps et pseudo réellement masqués), avec hook
-  de connexion pour les arrivants en cours de partie.
-- **Élimination corrigée** : le caché trouvé bascule proprement en spectateur sur place,
-  sans cycle mort/respawn sauvage de Minecraft.
-- **Backend ProtocolLib sur `PacketContainer` brut** : compilation garantie, suppression
-  robuste conservée (replis liste d'entiers / tableau d'entiers).
+- **Durée de partie dynamique** : base + bonus par joueur (`/cc <map> time <base> [par_joueur]`,
+  défaut 5 min + 1 min/joueur), calculée à chaque lancement de partie.
+- **Configuration d'arène plus rapide** : la durée n'est plus un paramètre obligatoire.
+- **Mobs de décor proportionnels au killmax** : plus le Seeker a de coups, plus la map
+  regorge de faux positifs pour compenser.
+- **Commande `hunt`** : avertissement (au lieu d'un blocage) si le déclenchement dépasse
+  la durée de base.
 
 ---
 
@@ -99,7 +102,13 @@ avant la fin du temps !
 
 ## 📜 Historique des versions
 
-### v1.6.0 (actuelle)
+### v1.7.0 (actuelle)
+- Correctif : le Seeker est totalement figé pendant les 15 s d'attente (position verrouillée à chaque tick, saut et nage inclus)
+- Correctif : les mobs hostiles ne peuvent plus accrocher les joueurs — filtre élargi de `Monster` à `Mob` (Phantom, Slime, MagmaCube, Guardian, Vex, Shulker...)
+- Correctif : la protection anti-ciblage est active à tout moment (lobby, compte à rebours, en jeu, fin de partie)
+- Backend ProtocolLib conservé sur `PacketContainer` brut (compilation garantie, repli natif automatique)
+
+### v1.6.0
 - Durée de partie dynamique : base + bonus par joueur (`/cc <map> time <base> [par_joueur]`, défaut 5 min + 1 min/joueur)
 - La durée n'est plus un paramètre obligatoire : configuration d'arène plus rapide
 - Mobs de décor désormais proportionnels au killmax du Seeker

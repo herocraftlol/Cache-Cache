@@ -51,6 +51,7 @@ public class GameSession {
     private int startingTicksLeft = 300; // 15s à 20 tick/s
     private int ticksLeft;
     private int computedKillMax = 10;
+    private final Map<UUID, Location> frozenSeekerLocation = new HashMap<>();
     private boolean timeIndefinite;
     private boolean mobSwapDone = false;
     private int mobSwapTriggerTick = -1;
@@ -196,9 +197,25 @@ public class GameSession {
             if (p != null) {
                 p.setWalkSpeed(0f);
                 p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 1, false, false));
+                // setWalkSpeed(0) empêche de marcher mais PAS de sauter (ni de nager/voler
+                // en survie de justesse) : on verrouille donc la position exacte à chaque
+                // tick, en ne gardant que l'orientation de la caméra du joueur.
+                Location frozen = frozenSeekerLocation.get(id);
+                if (frozen != null) {
+                    Location current = p.getLocation();
+                    if (current.getX() != frozen.getX() || current.getY() != frozen.getY() || current.getZ() != frozen.getZ()) {
+                        Location corrected = frozen.clone();
+                        corrected.setYaw(current.getYaw());
+                        corrected.setPitch(current.getPitch());
+                        p.teleport(corrected);
+                    }
+                    p.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+                    p.setFallDistance(0f);
+                }
             }
         }
         if (startingTicksLeft <= 0) {
+            frozenSeekerLocation.clear();
             for (UUID id : seekers) {
                 Player p = Bukkit.getPlayer(id);
                 if (p != null) {
@@ -302,6 +319,7 @@ public class GameSession {
             scoreboardHandler.assign(p, false);
         }
 
+        frozenSeekerLocation.clear();
         for (UUID id : seekers) {
             Player p = Bukkit.getPlayer(id);
             if (p == null) continue;
@@ -309,6 +327,7 @@ public class GameSession {
             p.setGameMode(GameMode.SURVIVAL);
             equipSeeker(p);
             scoreboardHandler.assign(p, true);
+            frozenSeekerLocation.put(id, map.getSpawnSeeker().clone());
             p.sendMessage(Msg.of("§c§lVous êtes le SEEKER ! Trouvez et éliminez tout le monde."));
         }
 

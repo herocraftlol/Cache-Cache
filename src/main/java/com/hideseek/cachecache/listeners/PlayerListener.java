@@ -193,15 +193,21 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onTarget(EntityTargetEvent e) {
         if (!(e.getTarget() instanceof Player target)) return;
-        if (!(e.getEntity() instanceof Monster)) return;
+        // org.bukkit.entity.Mob couvre TOUS les mobs pilotés par IA (hostiles ou non),
+        // contrairement à Monster qui exclut certains hostiles (Phantom, Slime,
+        // MagmaCube, Guardian, Vex, Shulker...). On veut bloquer tout accrochage, peu
+        // importe le type exact du mob.
+        if (!(e.getEntity() instanceof org.bukkit.entity.Mob)) return;
         GameSession session = sessionOf(target);
-        if (session == null || session.getState() != GameState.RUNNING) return;
-        boolean isSeeker = session.isSeeker(target.getUniqueId());
-        if (isSeeker && !session.hasScenario(Scenario.HOSTILE_MOBS)) {
-            e.setCancelled(true);
-        } else if (!isSeeker) {
-            e.setCancelled(true);
+        if (session == null) return;
+        // Protection active à TOUT moment (lobby, compte à rebours, en jeu, fin de
+        // partie) : un mob ne doit jamais pouvoir accrocher un joueur de l'arène, pas
+        // seulement pendant la partie elle-même.
+        boolean isSeekerDuringGame = session.getState() == GameState.RUNNING && session.isSeeker(target.getUniqueId());
+        if (isSeekerDuringGame && session.hasScenario(Scenario.HOSTILE_MOBS)) {
+            return; // scénario actif : les mobs hostiles peuvent cibler le Seeker
         }
+        e.setCancelled(true);
     }
 
     // ----------------------------------------------------------- INTERACT
