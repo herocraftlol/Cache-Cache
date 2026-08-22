@@ -510,6 +510,19 @@ public class GameSession {
         return getKillsUsed(seekerId) < computedKillMax;
     }
 
+    /**
+     * Vrai si TOUS les Seekers de la partie ont épuisé leur quota de coups (donc plus
+     * aucun ne peut éliminer qui que ce soit) : dans ce cas la partie doit immédiatement
+     * se terminer sur une victoire des cachés, plutôt que d'attendre la fin du temps.
+     */
+    public boolean allSeekersOutOfKills() {
+        if (hasScenario(Scenario.INFINITE_HITS)) return false;
+        for (UUID id : seekers) {
+            if (getKillsUsed(id) < computedKillMax) return false;
+        }
+        return true;
+    }
+
     public int getComputedKillMax() { return computedKillMax; }
 
     // ----------------------------------------------------------- COOLDOWNS

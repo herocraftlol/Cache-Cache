@@ -6,7 +6,27 @@ avant la fin du temps !
 
 ---
 
-## ✨ Nouveautés de la version 1.7.0
+## ✨ Nouveautés de la version 1.8.0
+
+### ⏱️ Fin de partie instantanée quand les Seekers n'ont plus de coups
+
+- Auparavant, une fois que **tous les Seekers** avaient épuisé leur quota de coups,
+  la partie continuait jusqu'à la fin du chrono alors que plus personne ne pouvait
+  éliminer quiconque — un temps mort frustrant pour tout le monde.
+- Désormais, une nouvelle vérification `allSeekersOutOfKills()` détecte cette situation
+  et **termine immédiatement la partie sur une victoire des cachés**, avec un message
+  clair : *« Le(s) Seeker(s) n'ont plus aucun coup disponible ! »*
+- Le contrôle est déclenché dans **toutes les situations possibles** : attaque sur un
+  joueur camouflé (système natif), attaque sur un mob fantôme du backend ProtocolLib,
+  et incidents de mort pendant la partie.
+- Le scénario **Coups illimités** est évidemment exempté : il ne peut jamais se
+  déclencher prématurément.
+
+---
+
+## 🗃️ Détails des versions précédentes
+
+### v1.7.0
 
 ### 🧊 Le Seeker est totalement figé pendant le compte à rebours
 
@@ -34,10 +54,6 @@ avant la fin du temps !
 - Le backend ProtocolLib reste sur l'approche **`PacketContainer` brut** (API stable de
   ProtocolLib 5.x) : la compilation est garantie quelle que soit la distribution exacte
   de ProtocolLib, avec repli automatique sur le système natif en cas de souci.
-
----
-
-## 🗃️ Détails de la version précédente (1.6.0)
 
 ### v1.6.0
 
@@ -102,7 +118,12 @@ avant la fin du temps !
 
 ## 📜 Historique des versions
 
-### v1.7.0 (actuelle)
+### v1.8.0 (actuelle)
+- Nouveauté : la partie se termine immédiatement (victoire des cachés) dès que tous les Seekers ont épuisé leurs coups, au lieu d'attendre la fin du chrono
+- Vérification `allSeekersOutOfKills()` déclenchée dans tous les cas : attaque native, attaque sur mob fantôme ProtocolLib et morts en jeu
+- Le scénario Coups illimités est exempté de cette fin anticipée
+
+### v1.7.0
 - Correctif : le Seeker est totalement figé pendant les 15 s d'attente (position verrouillée à chaque tick, saut et nage inclus)
 - Correctif : les mobs hostiles ne peuvent plus accrocher les joueurs — filtre élargi de `Monster` à `Mob` (Phantom, Slime, MagmaCube, Guardian, Vex, Shulker...)
 - Correctif : la protection anti-ciblage est active à tout moment (lobby, compte à rebours, en jeu, fin de partie)
@@ -188,7 +209,7 @@ avant la fin du temps !
 
 ## 🔧 Installation
 
-1. Téléchargez le fichier `CacheCache-1.6.0.jar` depuis la [page des releases](https://github.com/herocraftlol/Cache-Cache/releases)
+1. Téléchargez le fichier `CacheCache.jar` (v1.8.0) depuis la [page des releases](https://github.com/herocraftlol/Cache-Cache/releases)
 2. Placez le fichier dans le dossier `plugins/` de votre serveur Paper 1.21
 3. Redémarrez le serveur
 

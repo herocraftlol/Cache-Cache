@@ -85,6 +85,9 @@ public class PlayerListener implements Listener {
             if (!session.seekerHasKillsLeft(attacker.getUniqueId())) {
                 e.setCancelled(true);
                 attacker.sendMessage(Msg.of("§cVous n'avez plus de coups disponibles !"));
+                if (session.allSeekersOutOfKills()) {
+                    session.endGame(true, "§bLe(s) Seeker(s) n'ont plus aucun coup disponible !");
+                }
                 return;
             }
             // IMPORTANT : on annule le dégât plutôt que d'infliger 1000 points. Laisser la
@@ -155,6 +158,9 @@ public class PlayerListener implements Listener {
 
         if (!session.seekerHasKillsLeft(attacker.getUniqueId())) {
             attacker.sendMessage(Msg.of("§cVous n'avez plus de coups disponibles !"));
+            if (session.allSeekersOutOfKills()) {
+                session.endGame(true, "§bLe(s) Seeker(s) n'ont plus aucun coup disponible !");
+            }
             return;
         }
 

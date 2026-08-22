@@ -228,6 +228,9 @@ public class PacketDisguiseBackend {
 
             session.registerSeekerKill(attacker.getUniqueId());
             session.onHiddenEliminated(victim);
+            if (session.allSeekersOutOfKills()) {
+                session.endGame(true, "§bLe(s) Seeker(s) n'ont plus aucun coup disponible !");
+            }
             return;
         }
     }
